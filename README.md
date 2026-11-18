@@ -59,9 +59,9 @@ With the defaults that is seven calls; with `SWARM_BATCH_SIZE=10` it is twelve. 
 6. **Market & capital** — market graph, sizing hypotheses, and a VC shortlist. Verify all of it externally.
 7. **Guide conversation** — ask about results, or about a customer by number (`#42`) or name. The guide is a reasoning partner, not an oracle.
 8. **God's-eye pivot** — inject a Day-30 intervention. Only Round 3 changes; identities and Rounds 1–2 stay immutable.
-9. **Evidence log** — record one real observation per week with cohort size, measured/estimated status, a linked run and hypothesis, an optional success threshold (e.g. paying rate ≥ 20%), the numbers, and a note. Export or import the log as JSON/CSV. Entries stay in this browser.
+9. **Evidence log** — record one real observation per week with cohort size, measured/estimated status, a linked run and hypothesis, an optional success threshold (e.g. paying rate ≥ 20%), the numbers, and a note. The form opens with a short "how to fill this in" guide and a worked example. Export or import the log as JSON/CSV. Entries stay in this browser.
 10. **Include weekly evidence in this run** — the new-simulation form appends the last eight observations to the seed material, labelled as real observations. Uncheck it to keep evidence conversation-only.
-11. **Calibration** — compare a linked run's predicted Day-30 active, paying, churn, and GMV with what you observed. Predictions are scaled to your cohort first, thresholds show PASS/MISS, and a summary shows the average gap and range across weeks. Estimated entries are de-emphasised.
+11. **Calibration** — compare a linked run's predicted Day-30 active, paying, churn, and GMV with what you observed. A built-in 30-second guide explains what to read; bars show simulated vs real values, differences are spelled out in plain language, thresholds show PASS/MISS, and a summary shows the average gap and range across weeks. Estimated entries are de-emphasised.
 12. **Explore demo** restores the original illustrative PawsMatch run at any time.
 
 ## Getting more accurate results
