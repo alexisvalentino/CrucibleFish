@@ -55,12 +55,12 @@ function initialMessages(result) {
 function showError(selector, message) { const element = $(selector); if (!element) return; element.textContent = message || ""; element.hidden = !message; }
 function scrollChat() { requestAnimationFrame(() => { const scroll = $("#chatScroll"); scroll.scrollTop = scroll.scrollHeight; }); }
 function renderMessages() {
-  if (!state.result) return;
   $("#chatInner").innerHTML = state.messages.map((message) => message.role === "user"
     ? `<article class="message user"><div class="message-content">${fmt(message.content)}</div></article>`
     : `<article class="message assistant">${avatar(state.character, "avatar message-avatar")}<div><div class="message-name">${esc(state.character.name)}</div><div class="message-content">${fmt(message.content)}</div></div></article>`).join("");
   $("#typingRow").hidden = !state.streaming || state.messages.at(-1)?.streaming;
-  $("#chatSend").disabled = state.streaming;
+  $("#chatSend").disabled = state.streaming || Boolean(state.liveRun);
+  $("#chatInput").disabled = Boolean(state.liveRun);
   scrollChat();
 }
 function queueMessageRender() { if (chatRenderQueued) return; chatRenderQueued = true; requestAnimationFrame(() => { chatRenderQueued = false; renderMessages(); }); }
@@ -73,10 +73,17 @@ function renderCharacter() {
   $("#characterPreview").innerHTML = avatar(state.character);
 }
 function renderHeader() {
-  if (!state.result) return;
-  $("#runIdentity").innerHTML = `<strong>${esc(state.result.input.startupName)}</strong><span>${state.result.demo ? "Illustrative demo" : "Live synthetic run"}</span>`;
+  if (state.result) {
+    $("#runIdentity").innerHTML = `<strong>${esc(state.result.input.startupName)}</strong><span>${state.result.demo ? "Illustrative demo" : "Live synthetic run"}</span>`;
+    $("#chatMode").textContent = state.result.demo && !state.settings.apiKey && !state.serverConfig.hasServerOpenAIKey ? "Illustrative demo responses" : `${state.settings.model} · Live guide`;
+  } else if (state.liveRun) {
+    $("#runIdentity").innerHTML = `<strong>${esc(state.liveRun.startupName || "Your simulation")}</strong><span>Running now</span>`;
+    $("#chatMode").textContent = `${state.settings.model} · Running`;
+  } else {
+    $("#runIdentity").innerHTML = `<strong>Loading simulation</strong><span>Preparing the workbench</span>`;
+    $("#chatMode").textContent = "Preparing the guide";
+  }
   $("#activeModel").textContent = state.settings.model;
-  $("#chatMode").textContent = state.result.demo && !state.settings.apiKey && !state.serverConfig.hasServerOpenAIKey ? "Illustrative demo responses" : `${state.settings.model} · Live guide`;
   const suggestions = ["Why do customers churn?", "What should I cut first?", "Who pays after the pivot?"];
   $("#chatSuggestions").innerHTML = suggestions.map((question) => `<button class="suggestion" type="button" data-question="${esc(question)}">${esc(question)}</button>`).join("");
 }
@@ -130,7 +137,7 @@ function workbenchFocusSelector() {
 }
 function renderWorkbench({ resetScroll = false, focusTitle = false } = {}) {
   const focusSelector = workbenchFocusSelector();
-  if (!state.result) { $("#workbenchContent").innerHTML = `<div class="empty-state">Loading the simulation workbench…</div>`; return; }
+  if (!state.result) { $("#workbenchContent").innerHTML = state.liveRun ? `<div class="empty-state"><strong>Building your simulation</strong><p>The market graph, critique, and customer batches are running. Results will appear here when the run completes.</p></div>` : `<div class="empty-state">Loading the simulation workbench…</div>`; return; }
   const titles = { simulation: ["Simulation", "Three floors. One cumulative customer memory."], critique: ["Venture critique", "Scope, retention, and the data-to-AI flywheel."], market: ["Market & capital", "Reality graph, market hypotheses, and investor research."], evidence: ["Evidence log", "Real weekly observations, separate from synthetic results."], calibration: ["Calibration", "Predicted results compared with real weekly observations."] };
   $("#viewTitle").textContent = titles[state.view][0]; $("#viewSubtitle").textContent = titles[state.view][1];
   document.querySelectorAll("[data-view]").forEach((button) => button.classList.toggle("active", button.dataset.view === state.view));
@@ -232,6 +239,8 @@ async function finishLiveRun(id) {
   if (!response.result) { setTimeout(() => finishLiveRun(id), 150); return; }
   state.result = response.result; state.liveRun = null; stopProgressTimer(); state.liveSource?.close(); state.liveSource = null;
   state.floor = 2; state.view = "simulation"; state.selectedPersonaId = null;
+  const runningMessage = state.messages.find((message) => /running the market graph/i.test(message.content || ""));
+  state.messages = runningMessage ? [runningMessage] : [];
   state.messages.push({ role: "assistant", content: `# ${response.result.input.startupName} is ready.\nAll **100 customers** completed the three floors. Raw Day-14 retention is **${response.result.telemetry.day14Active}%**, compared with **${response.result.telemetry.day30Active}%** after the recommended pivot.\n\n${response.result.telemetry.topChurnTrigger.feature} is the leading churn trigger. Ask me to explain the trade-off, or inspect the customer field.` });
   saveChat(state.result.id, state.messages); renderAll({ resetScroll: true }); setMobilePane("workbench"); refreshRuns();
 }
@@ -256,8 +265,11 @@ async function startSimulation() {
     const input = collectIntake();
     const started = await postJson("/api/simulate", { input, character: state.character, settings: state.settings });
     closeDialog("simulationDialog");
-    state.liveRun = { id: started.id, events: [] }; startProgressTimer(); state.messages.push({ role: "assistant", content: "I’m running the market graph and venture critique, then the customer batches. I’ll keep the raw Day-14 behavior separate from the Day-30 pivot." });
-    saveChat(started.id, state.messages); renderMessages(); renderProgress(); subscribeLiveRun(started.id); setMobilePane("workbench");
+    state.result = null; state.view = "simulation"; state.floor = 2; state.selectedPersonaId = null;
+    state.liveRun = { id: started.id, events: [], startupName: input.startupName };
+    state.messages = [{ role: "assistant", content: `# ${input.startupName}\nI’m running the market graph and venture critique, then the customer batches. I’ll keep the raw Day-14 behavior separate from the Day-30 pivot.` }];
+    startProgressTimer();
+    saveChat(started.id, state.messages); renderAll(); renderProgress(); subscribeLiveRun(started.id); setMobilePane("workbench");
   } catch (error) { showError("#simulationError", error.message); if (error.status === 503) toast("Add your OpenAI key in AI connections, then run again."); }
   finally { button.disabled = false; }
 }
@@ -273,7 +285,14 @@ async function loadDemo() {
 }
 async function loadRun(id) {
   const response = await getJson(`/api/runs/${id}`);
-  if (response.status === "running") { state.liveRun = { id, events: response.events || [] }; startProgressTimer(); subscribeLiveRun(id); renderProgress(); return; }
+  if (response.status === "running") {
+    const startupName = state.history.find((run) => run.id === id)?.startupName || "Your simulation";
+    state.result = null; state.view = "simulation"; state.floor = 2; state.selectedPersonaId = null;
+    state.liveRun = { id, events: response.events || [], startupName };
+    state.messages = loadChat(id);
+    if (!state.messages.length) state.messages = [{ role: "assistant", content: `# ${startupName}\nI’m running the market graph and venture critique, then the customer batches.` }];
+    startProgressTimer(); renderAll(); renderProgress(); subscribeLiveRun(id); setMobilePane("workbench"); return;
+  }
   if (!response.result) throw new Error("This run has no completed result yet.");
   useResult(response.result); setMobilePane("workbench"); closeSidebar();
 }
@@ -303,6 +322,7 @@ async function runPivot() {
 }
 async function sendChat(text) {
   const message = String(text || "").trim();
+  if (state.liveRun) { toast("Wait for the run to finish before asking the guide."); return; }
   if (!message || state.streaming || !state.result) return;
   if (!state.result.demo && !state.settings.apiKey && !state.serverConfig.hasServerOpenAIKey) { showError("#chatError", "Add an OpenAI API key in AI connections to chat about this live run."); openSettings(); return; }
   showError("#chatError", ""); state.messages.push({ role: "user", content: message }); state.streaming = true;
