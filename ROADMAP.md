@@ -48,11 +48,12 @@ Real data is first-class and visually separate from synthetic output. Every week
 - The guide challenges the hypothesis rather than confirming it.
 - Acceptance: a founder can list what they believe, how they would know it is wrong, and when they will check.
 
-### Phase E2 — Calibration view (partly shipped)
+### Phase E2 — Calibration view (shipped)
 
-- **Shipped:** overlay the same metrics side by side for observations linked to a run — Day-30 active, paying, churn, and GMV — with a signed difference and a caveat that cohorts and timing may differ.
-- Still to do: track error over time and show which kinds of claims the model is consistently wrong about.
-- Still to do: report stability across multiple runs as a range, not a single number, so wild swings are visible.
+- **Shipped:** cohort-normalised side-by-side comparison for observations linked to a run — Day-30 active, paying, churn (as a rate), and GMV (scaled from per-100 to the observed cohort).
+- **Shipped:** optional per-observation success thresholds with PASS/MISS verdicts, plus measured/estimated labelling.
+- **Shipped:** average and range across weeks, with a caveat that cohorts and timing may differ.
+- Still to do: automatic detection of which claim types are consistently wrong, and ranges across repeated *runs* rather than repeated weeks.
 - Acceptance: after several weeks, the founder can see whether the simulation's directional calls held up.
 
 ### Phase E3 — Weekly review rhythm
