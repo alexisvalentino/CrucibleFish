@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { evidenceDigest, loadEvidence, normalizeEntry, saveEvidence } from "../public/evidence.mjs";
+import { evidenceCsv, evidenceDigest, loadEvidence, normalizeEntry, saveEvidence } from "../public/evidence.mjs";
 
 function memoryStorage(initial = {}) {
   const data = new Map(Object.entries(initial));
@@ -17,6 +17,18 @@ test("weekly observations normalize optional numbers and notes", () => {
   assert.equal(entry.paid, null);
   assert.match(entry.note, /Six interviews/);
   assert.ok(entry.id);
+});
+
+test("older entries migrate with cohort, source and run context defaults", () => {
+  const entry = normalizeEntry({ weekEnding: "2026-11-14", note: "legacy entry", cohortSize: "40", source: "estimated", runId: "run-42", hypothesis: "Free accounts remove friction" });
+  assert.equal(entry.cohortSize, 40);
+  assert.equal(entry.source, "ESTIMATED");
+  assert.equal(entry.runId, "run-42");
+  assert.match(entry.hypothesis, /Free accounts/);
+  const legacy = normalizeEntry({ weekEnding: "2026-11-07", note: "old" });
+  assert.equal(legacy.source, "MEASURED");
+  assert.equal(legacy.cohortSize, null);
+  assert.equal(legacy.runId, "");
 });
 
 test("evidence persists locally and sorts newest week first", () => {
@@ -41,4 +53,20 @@ test("digest labels observations as real evidence and bounds note length", () =>
   assert.match(digest, /\$120 observed GMV/);
   assert.ok(digest.length < 600);
   assert.equal(evidenceDigest([]), "");
+});
+
+test("digest includes cohort, source, run link and hypothesis", () => {
+  const digest = evidenceDigest([normalizeEntry({ weekEnding: "2026-11-18", cohortSize: "40", source: "ESTIMATED", runId: "run-7", hypothesis: "Clinics pay", note: "Two clinics asked for intake." })]);
+  assert.match(digest, /cohort 40/);
+  assert.match(digest, /estimated by the founder/);
+  assert.match(digest, /tests run run-7/);
+  assert.match(digest, /Hypothesis: Clinics pay/);
+});
+
+test("CSV export escapes commas and quotes and keeps a header", () => {
+  const csv = evidenceCsv([normalizeEntry({ weekEnding: "2026-11-18", note: 'Said "free", then churned', gmv: 90 })]);
+  const lines = csv.split("\r\n");
+  assert.match(lines[0], /^weekEnding,cohortSize,source,runId/);
+  assert.match(lines[1], /"Said ""free"", then churned"/);
+  assert.equal(lines.length, 2);
 });

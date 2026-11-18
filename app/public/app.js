@@ -1,13 +1,13 @@
 import { nextRovingIndex } from "./grid.mjs";
 import { loadCharacter, saveCharacter, loadSettings, saveSettings, loadChat, saveChat, getJson, postJson, streamEvents } from "./client.mjs";
-import { esc, fmt, icon, avatar, titleCase, renderSimulation, renderCritique, renderMarket, renderEvidence, renderPersona, renderFeatureRows } from "./views.mjs";
-import { loadEvidence, saveEvidence, evidenceDigest } from "./evidence.mjs";
+import { esc, fmt, icon, avatar, titleCase, renderSimulation, renderCritique, renderMarket, renderEvidence, renderCalibration, renderPersona, renderFeatureRows } from "./views.mjs";
+import { loadEvidence, saveEvidence, evidenceDigest, evidenceCsv } from "./evidence.mjs";
 const $ = (selector) => document.querySelector(selector);
 const state = {
   result: null, demoInput: null, character: loadCharacter(), settings: loadSettings(), serverConfig: {}, history: [],
   view: "simulation", floor: 2, channel: "COMMUNITY_REDDIT_FB_GROUP", archetypeFilter: "ALL", statusFilter: "ALL",
   selectedPersonaId: null, gridFocusId: 1, messages: [], streaming: false, pivotDraft: "", pivoting: false,
-  liveRun: null, liveSource: null, liveTimer: null, liveStartedAt: 0, draftInput: null, sidebarOpen: false, evidence: loadEvidence(), onboardingStep: 0,
+  liveRun: null, liveSource: null, liveTimer: null, liveStartedAt: 0, draftInput: null, sidebarOpen: false, evidence: loadEvidence(), calibrationRuns: {}, onboardingStep: 0,
 };
 let chatRenderQueued = false;
 let toastTimer;
@@ -22,6 +22,19 @@ function initDisclaimer() {
   let dismissed = false;
   try { dismissed = localStorage.getItem(DISCLAIMER_KEY) === "1"; } catch { /* storage may be unavailable */ }
   setDisclaimerVisible(!dismissed);
+}
+function downloadText(filename, text, type) {
+  const url = URL.createObjectURL(new Blob([text], { type }));
+  const link = document.createElement("a");
+  link.href = url; link.download = filename; link.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+async function loadCalibration() {
+  const ids = [...new Set((state.evidence || []).map((entry) => entry.runId).filter(Boolean))];
+  await Promise.all(ids.map(async (id) => {
+    if (state.calibrationRuns[id]) return;
+    try { state.calibrationRuns[id] = await getJson(`/api/runs/${id}`); } catch { /* an unavailable run stays unloaded */ }
+  }));
 }
 function renderOnboardingStep() {
   const steps = [...document.querySelectorAll("#onboardingDialog .onboarding-step")];
@@ -118,10 +131,10 @@ function workbenchFocusSelector() {
 function renderWorkbench({ resetScroll = false, focusTitle = false } = {}) {
   const focusSelector = workbenchFocusSelector();
   if (!state.result) { $("#workbenchContent").innerHTML = `<div class="empty-state">Loading the simulation workbench…</div>`; return; }
-  const titles = { simulation: ["Simulation", "Three floors. One cumulative customer memory."], critique: ["Venture critique", "Scope, retention, and the data-to-AI flywheel."], market: ["Market & capital", "Reality graph, market hypotheses, and investor research."], evidence: ["Evidence log", "Real weekly observations, separate from synthetic results."] };
+  const titles = { simulation: ["Simulation", "Three floors. One cumulative customer memory."], critique: ["Venture critique", "Scope, retention, and the data-to-AI flywheel."], market: ["Market & capital", "Reality graph, market hypotheses, and investor research."], evidence: ["Evidence log", "Real weekly observations, separate from synthetic results."], calibration: ["Calibration", "Predicted results compared with real weekly observations."] };
   $("#viewTitle").textContent = titles[state.view][0]; $("#viewSubtitle").textContent = titles[state.view][1];
   document.querySelectorAll("[data-view]").forEach((button) => button.classList.toggle("active", button.dataset.view === state.view));
-  $("#workbenchContent").innerHTML = state.view === "simulation" ? renderSimulation(state) : state.view === "critique" ? renderCritique(state) : state.view === "evidence" ? renderEvidence(state) : renderMarket(state);
+  $("#workbenchContent").innerHTML = state.view === "simulation" ? renderSimulation(state) : state.view === "critique" ? renderCritique(state) : state.view === "evidence" ? renderEvidence(state) : state.view === "calibration" ? renderCalibration(state) : renderMarket(state);
   if (resetScroll) $("#workbenchContent").scrollTop = 0;
   if (focusSelector) $("#workbenchContent").querySelector(focusSelector)?.focus({ preventScroll: true });
   if (focusTitle) $("#viewTitle").focus({ preventScroll: true });
@@ -190,7 +203,7 @@ function renderFeatureEditors() {
 function fillIntake(input) {
   state.draftInput = structuredClone(input);
   for (const key of ["startupName", "websiteUrl", "targetCustomer", "oneLinePitch", "businessModel", "targetGeography", "currentTraction", "unfairAdvantages", "proposedPricing", "seedMaterial"]) $(`#${key}`).value = input[key] || "";
-  renderFeatureEditors(); showError("#simulationError", "");
+  $("#includeEvidenceInRun").checked = true; renderFeatureEditors(); showError("#simulationError", "");
 }
 function captureFeatureEditors() {
   for (const [container, key, type] of [["#currentFeatures", "currentFeatures", "current"], ["#plannedFeatures", "plannedRoadmapFeatures", "planned"]]) {
@@ -207,6 +220,10 @@ function collectIntake() {
   captureFeatureEditors();
   const input = structuredClone(state.draftInput);
   for (const key of ["startupName", "websiteUrl", "targetCustomer", "oneLinePitch", "businessModel", "targetGeography", "currentTraction", "unfairAdvantages", "proposedPricing", "seedMaterial"]) input[key] = $(`#${key}`).value.trim();
+  if ($("#includeEvidenceInRun")?.checked && state.evidence.length) {
+    const digest = evidenceDigest(state.evidence);
+    input.seedMaterial = input.seedMaterial ? `${input.seedMaterial}\n\n${digest}` : digest;
+  }
   return input;
 }
 async function refreshRuns() { try { state.history = (await getJson("/api/runs")).runs; renderHistory(); } catch { /* the current run remains usable */ } }
@@ -342,6 +359,10 @@ document.addEventListener("submit", async (event) => {
   if (event.target.id === "evidenceForm") {
     const entry = {
       weekEnding: $("#evidenceWeek").value,
+      cohortSize: $("#evidenceCohort").value,
+      source: $("#evidenceSource").value,
+      runId: $("#evidenceRun").value,
+      hypothesis: $("#evidenceHypothesis").value,
       interviews: $("#evidenceInterviews").value,
       active: $("#evidenceActive").value,
       churned: $("#evidenceChurned").value,
@@ -365,9 +386,21 @@ document.addEventListener("submit", async (event) => {
     catch (error) { showError("#characterError", error.message); }
   }
 });
-document.addEventListener("change", (event) => {
+document.addEventListener("change", async (event) => {
   if (event.target.id === "archetypeFilter") { state.archetypeFilter = event.target.value; renderWorkbench(); }
   if (event.target.id === "statusFilter") { state.statusFilter = event.target.value; renderWorkbench(); }
+  if (event.target.id === "importEvidenceFile") {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+    try {
+      const parsed = JSON.parse(await file.text());
+      const incoming = Array.isArray(parsed) ? parsed : [];
+      if (!incoming.length) throw new Error("No observations in that file.");
+      state.evidence = saveEvidence([...incoming, ...state.evidence]);
+      renderWorkbench(); toast(`Imported ${incoming.length} observations.`);
+    } catch (error) { toast(`Import failed: ${error.message}`); }
+  }
 });
 document.addEventListener("input", (event) => { if (event.target.id === "pivotInput") state.pivotDraft = event.target.value; });
 document.addEventListener("click", async (event) => {
@@ -376,8 +409,11 @@ document.addEventListener("click", async (event) => {
   try {
     if (target.dataset.close) { if (target.dataset.close === "onboardingDialog") markOnboardingSeen(); closeDialog(target.dataset.close); return; }
     if (target.dataset.removeEvidence) { state.evidence = state.evidence.filter((entry) => entry.id !== target.dataset.removeEvidence); saveEvidence(state.evidence); renderWorkbench(); toast("Observation removed."); return; }
+    if (target.id === "exportEvidenceJson") { downloadText("cruciblefish-evidence.json", JSON.stringify(state.evidence, null, 2), "application/json"); return; }
+    if (target.id === "exportEvidenceCsv") { downloadText("cruciblefish-evidence.csv", evidenceCsv(state.evidence), "text/csv"); return; }
+    if (target.id === "importEvidenceBtn") { $("#importEvidenceFile").click(); return; }
     if (target.dataset.mobilePane) { setMobilePane(target.dataset.mobilePane); return; }
-    if (target.dataset.view) { state.view = target.dataset.view; renderWorkbench({ resetScroll: true, focusTitle: true }); setMobilePane("workbench"); return; }
+    if (target.dataset.view) { state.view = target.dataset.view; if (state.view === "calibration") await loadCalibration(); renderWorkbench({ resetScroll: true, focusTitle: true }); setMobilePane("workbench"); return; }
     if (target.dataset.floor) { state.floor = Number(target.dataset.floor); renderWorkbench(); return; }
     if (target.dataset.channel) { state.channel = target.dataset.channel; renderWorkbench(); return; }
     if (target.dataset.question) { await sendChat(target.dataset.question); return; }
