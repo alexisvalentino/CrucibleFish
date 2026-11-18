@@ -15,7 +15,7 @@ A founder or product operator is deciding what to build, remove, automate, or ch
 ## Required workflows
 - Create and edit one guide: name, role, and personality, shown with a simple initial-letter avatar.
 - Configure an OpenAI API key, model, and optional OpenAI-compatible custom base URL from the browser; server environment variables are also supported.
-- Load the PawsMatch case study or enter a startup pitch, target customer, geography, business model, pricing, traction, current features, planned roadmap, and optional seed evidence.
+- Load the PawsMatch case study or enter a startup pitch, target customer, geography, business model, pricing, traction, current features, planned roadmap, and optional seed evidence; optionally auto-fill from a website's public metadata without overwriting existing input.
 - Run the live pipeline: ontology plus venture critic, then customer batches sized by `SWARM_BATCH_SIZE` (default five batches of 20) with concurrency limited by `SWARM_CONCURRENCY`.
 - Inspect all 100 customers across Day 1, Day 14, and Day 30, with filters, social threads, episodic memories, and computed raw-versus-pivot telemetry.
 - Inspect feature triage, the four-stage data flywheel, a 90-day plan, market estimates, and VC matches.

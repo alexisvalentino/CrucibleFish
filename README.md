@@ -51,7 +51,7 @@ With the defaults that is seven calls; with `SWARM_BATCH_SIZE=10` it is twelve. 
 
 ## How to use it
 
-1. **New simulation** — fill in the brief: name, one-line pitch, target customer, geography, business model (who pays vs. who uses), pricing and packaging, traction, unfair advantages, and optional **seed material**. Seed material is the highest-return accuracy lever: paste real interview quotes, support logs, or analytics notes.
+1. **New simulation** — fill in the brief: name, one-line pitch, target customer, geography, business model (who pays vs. who uses), pricing and packaging, traction, unfair advantages, and optional **seed material**. Seed material is the highest-return accuracy lever: paste real interview quotes, support logs, or analytics notes. To save time, enter a website and click **Auto-fill from website** — it reads the page's public metadata and structured data, fills only the fields it finds, and leaves the rest for you. Nothing is overwritten.
 2. Add current features (tick the ones that need routine manual typing) and planned roadmap items with categories. **Load PawsMatch preset** fills a worked example.
 3. **Run 100-customer simulation** and watch the progress panel: market graph, venture critique, each customer batch, then telemetry.
 4. **Simulation** view — move among Day 1, Day 14, and Day 30; filter the 100 customers; inspect social threads and episodic memories.
