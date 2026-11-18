@@ -7,6 +7,7 @@ import { APP_ROOT, REPO_ROOT, env } from "./lib/env.mjs";
 import { normalizeOpenAIConfig, streamChat, listProviderModels } from "./lib/openai.mjs";
 import { runCrucibleSimulation, reSimulateRound3, applyDemoPivot, createDemoSimulation, demoGuideReply, validateStartupInput } from "./lib/simulation.mjs";
 import { buildGuidePrompt, findMentionedPersona } from "./lib/prompts.mjs";
+import { discoverIntake } from "./lib/discover.mjs";
 
 const PUBLIC = path.join(APP_ROOT, "public");
 const TYPES = { ".html": "text/html; charset=utf-8", ".js": "text/javascript; charset=utf-8", ".mjs": "text/javascript; charset=utf-8", ".css": "text/css; charset=utf-8", ".svg": "image/svg+xml", ".png": "image/png", ".webp": "image/webp", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".ico": "image/x-icon", ".json": "application/json", ".ttf": "font/ttf", ".txt": "text/plain; charset=utf-8" };
@@ -45,6 +46,7 @@ export function createAppServer(options = {}) {
   fs.mkdirSync(sessionsDir, { recursive: true });
   const runSimulation = options.runSimulation || runCrucibleSimulation;
   const chatCompletion = options.streamChat || streamChat;
+  const intakeDiscovery = options.intakeDiscovery || discoverIntake;
   const runs = new Map();
   let demo = createDemoSimulation();
   const persist = (result) => {
@@ -78,6 +80,11 @@ export function createAppServer(options = {}) {
         hasServerOpenAIKey: Boolean(env("OPENAI_API_KEY")),
         defaultModel: env("OPENAI_MODEL") || "gpt-4o", defaultFastModel: env("OPENAI_FAST_MODEL") || "gpt-4o-mini",
       });
+      if (route === "/api/intake/discover" && req.method === "POST") {
+        const body = await readJson(req);
+        const result = await intakeDiscovery({ name: clean(body.name, 100), websiteUrl: clean(body.websiteUrl, 600) });
+        return send(res, 200, result);
+      }
       if (route === "/api/demo/reset" && req.method === "POST") { demo = createDemoSimulation(); return send(res, 200, demo); }
       if (route === "/api/demo" && req.method === "GET") return send(res, 200, demo);
       if (route === "/api/runs" && req.method === "GET") {
@@ -210,7 +217,7 @@ export function createAppServer(options = {}) {
       return;
     } catch (error) {
       if (res.headersSent) { res.end(); return; }
-      const validation = /Complete the|Describe the|Add at least|Every .* needs|valid JSON|at least 8 characters/i.test(error.message);
+      const validation = /Complete the|Describe the|Add at least|Every .* needs|valid JSON|at least 8 characters|valid website URL|http and https|website URL first|Private network|not reachable|redirected too many times|website returned|readable web page/i.test(error.message);
       return send(res, error.status || (validation ? 400 : 500), { error: clean(error.message, 800) || "Unexpected server error." });
     }
   });

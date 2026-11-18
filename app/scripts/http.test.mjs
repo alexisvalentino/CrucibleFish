@@ -69,6 +69,26 @@ test("paid endpoints reject missing credentials before work begins", async (t) =
   assert.equal(badPivot.status, 400);
 });
 
+test("website discovery fills only what the page provides and maps bad URLs to 400", async (t) => {
+  const { base } = await fixture(t, {
+    intakeDiscovery: async ({ websiteUrl }) => {
+      if (!websiteUrl) throw new Error("Add a website URL first, then try auto-fill.");
+      return { fields: { startupName: "OrbitTools", oneLinePitch: "A planning tool for small product teams." }, matched: ["startupName", "oneLinePitch"], notes: "Found 2 fields.", source: websiteUrl };
+    },
+  });
+  const ok = await fetch(`${base}/api/intake/discover`, {
+    method: "POST", headers: { "content-type": "application/json" },
+    body: JSON.stringify({ name: "OrbitTools", websiteUrl: "https://example.com" }),
+  });
+  assert.equal(ok.status, 200);
+  const body = await ok.json();
+  assert.deepEqual(Object.keys(body.fields), ["startupName", "oneLinePitch"]);
+  const bad = await fetch(`${base}/api/intake/discover`, {
+    method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({}),
+  });
+  assert.equal(bad.status, 400);
+});
+
 test("browser modules and the app shell are served with executable MIME types", async (t) => {
   const { base } = await fixture(t);
   for (const file of ["app.js", "client.mjs", "views.mjs"]) {

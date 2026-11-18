@@ -258,6 +258,25 @@ function subscribeLiveRun(id) {
     getJson(`/api/runs/${id}`).then((run) => { if (run.result) finishLiveRun(id); else if (run.status === "error") { state.liveRun = null; stopProgressTimer(); showError("#chatError", run.events.at(-1)?.error || "The simulation failed."); renderProgress(); } else subscribeLiveRun(id); }).catch(() => { state.liveRun = null; stopProgressTimer(); showError("#chatError", "Lost contact with the local run. Reload the page and check Run history."); renderProgress(); });
   };
 }
+async function discoverFromWebsite() {
+  const button = $("#discoverBtn"); const original = button.textContent;
+  const raw = $("#websiteUrl").value.trim();
+  let parsed;
+  try { parsed = new URL(raw); } catch { toast("Enter a valid website URL, including https://."); return; }
+  if (!["http:", "https:"].includes(parsed.protocol)) { toast("Only http and https websites can be read."); return; }
+  if (["localhost", "127.0.0.1", "::1", "0.0.0.0"].includes(parsed.hostname)) { toast("Local or internal addresses cannot be read."); return; }
+  button.disabled = true; button.textContent = "Reading the site…";
+  try {
+    const result = await postJson("/api/intake/discover", { name: $("#startupName").value, websiteUrl: raw });
+    let filled = 0;
+    for (const [key, value] of Object.entries(result.fields || {})) {
+      const element = document.getElementById(key);
+      if (element && !element.value.trim()) { element.value = value; filled += 1; }
+    }
+    toast(filled ? `Filled ${filled} field${filled === 1 ? "" : "s"} from the site.` : (result.notes || "Nothing usable found — fill the form manually."));
+  } catch (error) { toast(error.message); }
+  finally { button.disabled = false; button.textContent = original; }
+}
 async function startSimulation() {
   const button = $("#startRunBtn"); button.disabled = true; showError("#simulationError", "");
   try {
@@ -360,6 +379,7 @@ $("#settingsBtn").addEventListener("click", openSettings);
 $("#testConnectionBtn").addEventListener("click", testConnection);
 $("#newSimulationBtn").addEventListener("click", () => { fillIntake(blankInput()); openDialog("simulationDialog"); });
 $("#loadPresetBtn").addEventListener("click", () => fillIntake(state.demoInput || state.result.input));
+$("#discoverBtn").addEventListener("click", discoverFromWebsite);
 $("#demoTopBtn").addEventListener("click", () => loadDemo().catch((error) => toast(error.message)));
 $("#demoHistoryBtn").addEventListener("click", () => loadDemo().catch((error) => toast(error.message)));
 $("#clearChatBtn").addEventListener("click", () => { state.messages = initialMessages(state.result); state.selectedPersonaId = null; saveChat(state.result.id, state.messages); renderAll(); });
