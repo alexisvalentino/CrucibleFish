@@ -20,7 +20,8 @@ A founder or product operator is deciding what to build, remove, automate, or ch
 - Inspect all 100 customers across Day 1, Day 14, and Day 30, with filters, social threads, episodic memories, and computed raw-versus-pivot telemetry.
 - Inspect feature triage, the four-stage data flywheel, a 90-day plan, market estimates, and VC matches.
 - Stream a conversation with the single guide and ask about selected customers or results.
-- Inject a custom God's-eye pivot and re-simulate only Round 3 while preserving Round 1, Round 2, and customer identities.
+- Inject a custom God's-eye pivot from a floating console available on every view and re-simulate only Round 3 while preserving Round 1, Round 2, and customer identities.
+- Present social threads as clearly labelled seed evidence with round labels, channel filters, and links from influenced customers to their actual Day-14 actions.
 - Record weekly real observations with cohort size, measured/estimated status, linked run, hypothesis, and optional falsifiable success threshold; export or import them, include them in new runs, and compare cohort-normalised predictions with outcomes in the Calibration view.
 - Start empty: no simulated data is loaded until the founder runs a simulation or explicitly opens the clearly labelled illustrative PawsMatch demo, which needs no API keys or paid calls.
 
