@@ -58,4 +58,8 @@ const deltaFields = obj({
 export const deltaSchema = (size = 20) => obj({ deltas: { type: "array", items: deltaFields, minItems: size, maxItems: size } });
 export const DELTA_SCHEMA = deltaSchema(20);
 
+export const DISCOVERY_SCHEMA = obj({
+  startupName: str, oneLinePitch: str, targetCustomer: str, targetGeography: str,
+  businessModel: str, proposedPricing: str, currentTraction: str, unfairAdvantages: str,
+});
 export const GUIDE_JSON_SCHEMA = obj({ reply: str });

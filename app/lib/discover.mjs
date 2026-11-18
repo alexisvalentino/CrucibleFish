@@ -74,6 +74,25 @@ function jsonLdObjects(html) {
   return found;
 }
 
+export function htmlToText(html = "") {
+  return String(html || "")
+    .replace(/<script[\s\S]*?<\/script>/gi, " ")
+    .replace(/<style[\s\S]*?<\/style>/gi, " ")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&nbsp;/gi, " ").replace(/&amp;/gi, "&").replace(/&quot;/gi, '"')
+    .replace(/&#39;|&apos;/gi, "'").replace(/&lt;/gi, "<").replace(/&gt;/gi, ">")
+    .replace(/\s+/g, " ").trim().slice(0, 20000);
+}
+
+export function mergeDiscoveredFields(deterministic = {}, suggested = {}) {
+  const cleanSuggested = {};
+  for (const [key, limit] of Object.entries(LIMITS)) {
+    const value = clean(suggested?.[key], limit);
+    if (value) cleanSuggested[key] = value;
+  }
+  return { ...cleanSuggested, ...deterministic };
+}
+
 export function extractIntake(html = {}, providedName = "") {
   const source = typeof html === "string" ? html : "";
   const title = source.match(/<title[^>]*>([\s\S]*?)<\/title>/i)?.[1] || "";
@@ -103,8 +122,22 @@ export function extractIntake(html = {}, providedName = "") {
   return { fields, matched, notes: matched.length ? `Found ${matched.length} field${matched.length === 1 ? "" : "s"} on the page. Check them before running.` : "Nothing usable found on the page. Fill the form manually." };
 }
 
-export async function discoverIntake({ name = "", websiteUrl = "" } = {}, { fetchImpl = globalThis.fetch, lookup = dns.lookup } = {}) {
+export async function discoverIntake({ name = "", websiteUrl = "" } = {}, { fetchImpl = globalThis.fetch, lookup = dns.lookup, enrich = null } = {}) {
   if (!String(websiteUrl || "").trim()) throw new Error("Add a website URL first, then try auto-fill.");
   const html = await fetchPage(String(websiteUrl).trim(), fetchImpl, lookup);
-  return { ...extractIntake(html, name), source: String(websiteUrl).trim().slice(0, 600) };
+  const base = extractIntake(html, name);
+  let fields = base.fields;
+  let usedAI = false;
+  if (typeof enrich === "function" && Object.keys(fields).length < 4) {
+    const suggested = await enrich(htmlToText(html)).catch(() => null);
+    if (suggested && typeof suggested === "object") {
+      fields = mergeDiscoveredFields(fields, suggested);
+      usedAI = true;
+    }
+  }
+  const matched = Object.keys(fields);
+  const notes = matched.length
+    ? `Found ${matched.length} field${matched.length === 1 ? "" : "s"} on the page${usedAI ? " with AI help" : ""}. Check them before running.`
+    : "Nothing usable found on the page. Fill the form manually.";
+  return { fields, matched, notes, usedAI, source: String(websiteUrl).trim().slice(0, 600) };
 }

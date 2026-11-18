@@ -47,6 +47,9 @@ export function findMentionedPersona(result, text) {
   return personas.find((persona) => persona.name && lowered.includes(String(persona.name).toLowerCase())) || null;
 }
 
+export const DISCOVERY_SYSTEM_PROMPT = `You extract startup facts from a website's visible text for a founder intake form. Return only facts explicitly stated on the page. Never guess or infer. Use an empty string for anything not stated. Fields: startupName, oneLinePitch (one or two sentences), targetCustomer (who it is for), targetGeography, businessModel (who pays and how revenue is captured), proposedPricing (amounts and currency if shown), currentTraction, unfairAdvantages. Return JSON matching the schema.`;
+export const buildDiscoveryPrompt = (text) => `Website text:\n${String(text || "").slice(0, 20000)}`;
+
 export function buildGuidePrompt(character, result, selectedPersona, realEvidence = "") {
   const c = character || {};
   const summary = result ? {

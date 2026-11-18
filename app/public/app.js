@@ -312,7 +312,7 @@ async function discoverFromWebsite() {
       const element = document.getElementById(key);
       if (element && !element.value.trim()) { element.value = value; filled += 1; }
     }
-    toast(filled ? `Filled ${filled} field${filled === 1 ? "" : "s"} from the site.` : (result.notes || "Nothing usable found — fill the form manually."));
+    toast(filled ? `Filled ${filled} field${filled === 1 ? "" : "s"} from the site${result.usedAI ? " with AI help" : ""}.` : (result.notes || "Nothing usable found — fill the form manually."));
   } catch (error) { toast(error.message); }
   finally {
     await new Promise((resolve) => setTimeout(resolve, Math.max(0, 450 - (Date.now() - started))));

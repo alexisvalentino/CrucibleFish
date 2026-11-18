@@ -1,7 +1,7 @@
 import "./test-env.mjs";
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { discoverIntake, extractIntake } from "../lib/discover.mjs";
+import { discoverIntake, extractIntake, htmlToText, mergeDiscoveredFields } from "../lib/discover.mjs";
 
 const html = `<html><head>
 <title>OrbitTools — Home</title>
@@ -34,6 +34,27 @@ test("discovery uses injected fetch and lookup", async () => {
   assert.equal(result.fields.startupName, undefined);
   assert.match(result.fields.oneLinePitch, /planning workspace/);
   assert.equal(result.source, "https://example.com");
+});
+
+test("HTML text and AI suggestions fill gaps without overwriting known fields", () => {
+  assert.match(htmlToText("<html><script>bad()</script><body>Hello <b>world</b></body></html>"), /Hello world/);
+  const merged = mergeDiscoveredFields({ oneLinePitch: "Known pitch" }, { oneLinePitch: "Guessed pitch", targetGeography: "Metro Manila" });
+  assert.equal(merged.oneLinePitch, "Known pitch");
+  assert.equal(merged.targetGeography, "Metro Manila");
+});
+
+test("thin pages use the AI enricher", async () => {
+  const fetchThin = async () => new Response("<html><body>Acme helps clinics manage intake.</body></html>", { status: 200, headers: { "content-type": "text/html" } });
+  const result = await discoverIntake({ name: "", websiteUrl: "https://example.org" }, {
+    fetchImpl: fetchThin, lookup,
+    enrich: async (text) => {
+      assert.match(text, /Acme helps clinics/);
+      return { startupName: "Acme", oneLinePitch: "Acme helps clinics manage intake.", targetGeography: "Metro Manila", businessModel: "", proposedPricing: "", currentTraction: "", unfairAdvantages: "", targetCustomer: "" };
+    },
+  });
+  assert.equal(result.usedAI, true);
+  assert.equal(result.fields.startupName, "Acme");
+  assert.equal(result.fields.targetGeography, "Metro Manila");
 });
 
 test("private and malformed addresses are rejected", async () => {

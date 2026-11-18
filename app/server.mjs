@@ -4,9 +4,10 @@ import path from "node:path";
 import { randomUUID } from "node:crypto";
 import { fileURLToPath } from "node:url";
 import { APP_ROOT, REPO_ROOT, env } from "./lib/env.mjs";
-import { normalizeOpenAIConfig, streamChat, listProviderModels } from "./lib/openai.mjs";
+import { normalizeOpenAIConfig, streamChat, listProviderModels, requestJson } from "./lib/openai.mjs";
 import { runCrucibleSimulation, reSimulateRound3, applyDemoPivot, createDemoSimulation, demoGuideReply, validateStartupInput } from "./lib/simulation.mjs";
-import { buildGuidePrompt, findMentionedPersona } from "./lib/prompts.mjs";
+import { buildGuidePrompt, findMentionedPersona, DISCOVERY_SYSTEM_PROMPT, buildDiscoveryPrompt } from "./lib/prompts.mjs";
+import { DISCOVERY_SCHEMA } from "./lib/schemas.mjs";
 import { discoverIntake } from "./lib/discover.mjs";
 
 const PUBLIC = path.join(APP_ROOT, "public");
@@ -83,7 +84,18 @@ export function createAppServer(options = {}) {
       });
       if (route === "/api/intake/discover" && req.method === "POST") {
         const body = await readJson(req);
-        const result = await intakeDiscovery({ name: clean(body.name, 100), websiteUrl: clean(body.websiteUrl, 600) });
+        const settings = settingsFrom(body);
+        const config = normalizeOpenAIConfig(settings);
+        const enrich = config.apiKey ? async (text) => {
+          try {
+            return await requestJson({
+              settings, model: config.fastModel, system: DISCOVERY_SYSTEM_PROMPT,
+              prompt: buildDiscoveryPrompt(text), schema: DISCOVERY_SCHEMA,
+              schemaName: "startup_discovery", maxTokens: 1800, temperature: 0.2,
+            });
+          } catch { return null; }
+        } : null;
+        const result = await intakeDiscovery({ name: clean(body.name, 100), websiteUrl: clean(body.websiteUrl, 600) }, { enrich });
         return send(res, 200, result);
       }
       if (route === "/api/demo/reset" && req.method === "POST") { demo = createDemoSimulation(); return send(res, 200, demo); }
