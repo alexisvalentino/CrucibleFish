@@ -1,5 +1,30 @@
 import dns from "node:dns/promises";
 import net from "node:net";
+import https from "node:https";
+
+const TLS_FALLBACK_CODES = ["UNABLE_TO_VERIFY_LEAF_SIGNATURE", "CERT_HAS_EXPIRED", "DEPTH_ZERO_SELF_SIGNED_CERT", "SELF_SIGNED_CERT_IN_CHAIN"];
+
+async function relaxedFetch(url, options = {}) {
+  try { return await fetch(url, options); }
+  catch (error) {
+    if (!TLS_FALLBACK_CODES.includes(error?.cause?.code)) throw error;
+    return new Promise((resolve, reject) => {
+      const request = https.get(url, {
+        headers: options.headers, rejectUnauthorized: false, timeout: 8000,
+      }, (response) => {
+        const headers = { get: (name) => response.headers[String(name).toLowerCase()] };
+        const chunks = [];
+        response.on("data", (chunk) => chunks.push(chunk));
+        response.on("end", () => resolve({
+          status: response.statusCode, ok: response.statusCode >= 200 && response.statusCode < 300,
+          headers, text: async () => Buffer.concat(chunks).toString("utf8"),
+        }));
+      });
+      request.on("error", reject);
+      request.on("timeout", () => request.destroy(new Error("The website request timed out.")));
+    });
+  }
+}
 
 const MAX_HTML = 500000;
 const LIMITS = {
@@ -88,7 +113,7 @@ export function mergeDiscoveredFields(deterministic = {}, suggested = {}) {
   const cleanSuggested = {};
   for (const [key, limit] of Object.entries(LIMITS)) {
     const value = clean(suggested?.[key], limit);
-    if (value) cleanSuggested[key] = value;
+    if (value && !/^(not (explicitly )?stated|not available|not specified|n\/a|unknown|none|no information)$/i.test(value)) cleanSuggested[key] = value;
   }
   return { ...cleanSuggested, ...deterministic };
 }
@@ -122,7 +147,7 @@ export function extractIntake(html = {}, providedName = "") {
   return { fields, matched, notes: matched.length ? `Found ${matched.length} field${matched.length === 1 ? "" : "s"} on the page. Check them before running.` : "Nothing usable found on the page. Fill the form manually." };
 }
 
-export async function discoverIntake({ name = "", websiteUrl = "" } = {}, { fetchImpl = globalThis.fetch, lookup = dns.lookup, enrich = null } = {}) {
+export async function discoverIntake({ name = "", websiteUrl = "" } = {}, { fetchImpl = relaxedFetch, lookup = dns.lookup, enrich = null } = {}) {
   if (!String(websiteUrl || "").trim()) throw new Error("Add a website URL first, then try auto-fill.");
   const html = await fetchPage(String(websiteUrl).trim(), fetchImpl, lookup);
   const base = extractIntake(html, name);
