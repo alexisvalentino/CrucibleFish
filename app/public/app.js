@@ -5,7 +5,7 @@ import { loadEvidence, saveEvidence, evidenceDigest, evidenceCsv } from "./evide
 const $ = (selector) => document.querySelector(selector);
 const state = {
   result: null, demoInput: null, character: loadCharacter(), settings: loadSettings(), serverConfig: {}, history: [],
-  view: "simulation", floor: 2, channel: "COMMUNITY_REDDIT_FB_GROUP", archetypeFilter: "ALL", statusFilter: "ALL",
+  view: "simulation", floor: 2, channel: "COMMUNITY_REDDIT_FB_GROUP", socialRound: "ALL", archetypeFilter: "ALL", statusFilter: "ALL",
   selectedPersonaId: null, gridFocusId: 1, messages: [], streaming: false, pivotDraft: "", pivoting: false,
   liveRun: null, liveSource: null, liveTimer: null, liveStartedAt: 0, draftInput: null, sidebarOpen: false, evidence: loadEvidence(), calibrationRuns: {}, onboardingStep: 0,
 };
@@ -155,7 +155,7 @@ function renderWorkbench({ resetScroll = false, focusTitle = false } = {}) {
   if (focusTitle) $("#viewTitle").focus({ preventScroll: true });
   renderProgress();
 }
-function renderAll(options = {}) { renderCharacter(); renderHeader(); renderHistory(); renderMessages(); renderWorkbench(options); }
+function renderAll(options = {}) { renderCharacter(); renderHeader(); renderHistory(); renderMessages(); renderWorkbench(options); renderIntervention(); }
 function openDialog(id) { dialogReturnFocus.set(id, document.activeElement); closeSidebar(); const dialog = $(`#${id}`); if (!dialog.open) dialog.showModal(); }
 function closeDialog(id) { const dialog = $(`#${id}`); if (dialog?.open) dialog.close(); }
 function setMobilePane(pane) { $(".app-shell").dataset.mobilePane = pane; document.querySelectorAll("[data-mobile-pane]").forEach((button) => button.classList.toggle("active", button.dataset.mobilePane === pane)); closeSidebar(); }
@@ -267,6 +267,26 @@ function subscribeLiveRun(id) {
     getJson(`/api/runs/${id}`).then((run) => { if (run.result) finishLiveRun(id); else if (run.status === "error") { state.liveRun = null; stopProgressTimer(); showError("#chatError", run.events.at(-1)?.error || "The simulation failed."); renderProgress(); } else subscribeLiveRun(id); }).catch(() => { state.liveRun = null; stopProgressTimer(); showError("#chatError", "Lost contact with the local run. Reload the page and check Run history."); renderProgress(); });
   };
 }
+function setInterventionOpen(open) {
+  $("#interventionPanel").hidden = !open;
+  $("#interventionToggle").setAttribute("aria-expanded", String(open));
+  if (open) { renderIntervention(); $("#pivotInput").focus({ preventScroll: true }); }
+}
+function renderIntervention() {
+  const result = state.result;
+  const ready = Boolean(result) && !state.liveRun;
+  $("#interventionStatus").textContent = !result ? "Load a simulation to test an intervention" : state.pivoting ? "Re-simulating Day 30…" : "Only Day 30 changes";
+  const current = result?.ventureCritic?.recommendedGodsEyePivotSummary;
+  $("#interventionCurrent").innerHTML = current ? `<span class="intervention-label">Current pivot</span><p>${esc(current)}</p>` : "";
+  const history = result?.pivotHistory || [];
+  $("#interventionHistory").innerHTML = history.length ? `<span class="intervention-label">Recent interventions</span>${history.slice(-4).reverse().map((item) => `<div class="intervention-item"><time>${esc(new Date(item.at).toLocaleString())}</time><p>${esc(item.pivot)}</p></div>`).join("")}` : "";
+  const input = $("#pivotInput");
+  const submit = $("#pivotForm button[type=submit]");
+  input.disabled = !ready || state.pivoting;
+  input.value = state.pivotDraft || "";
+  if (submit) { submit.disabled = !ready || state.pivoting; submit.textContent = state.pivoting ? "Re-simulating…" : "Run intervention"; }
+  $("#interventionPanel").classList.toggle("unavailable", !ready);
+}
 async function discoverFromWebsite() {
   const button = $("#discoverBtn"); const original = button.textContent;
   const raw = $("#websiteUrl").value.trim();
@@ -336,7 +356,7 @@ async function runPivot() {
   const input = $("#pivotInput");
   state.pivotDraft = input.value.trim();
   if (state.pivotDraft.length < 8) { showError("#pivotError", "Describe the intervention in at least 8 characters."); return; }
-  state.pivoting = true; renderWorkbench();
+  state.pivoting = true; renderIntervention();
   try {
     const result = await postJson(`/api/runs/${state.result.id}/pivot`, { pivot: state.pivotDraft, settings: state.settings });
     state.result = result; state.floor = 3; state.pivotDraft = "";
@@ -386,6 +406,8 @@ $("#disclaimerCloseBtn").addEventListener("click", () => {
 });
 $("#settingsBtn").addEventListener("click", openSettings);
 $("#testConnectionBtn").addEventListener("click", testConnection);
+$("#interventionToggle").addEventListener("click", () => setInterventionOpen($("#interventionPanel").hidden));
+$("#interventionClose").addEventListener("click", () => setInterventionOpen(false));
 $("#newSimulationBtn").addEventListener("click", () => { fillIntake(blankInput()); openDialog("simulationDialog"); });
 $("#loadPresetBtn").addEventListener("click", () => fillIntake(state.demoInput || state.result.input));
 $("#discoverBtn").addEventListener("click", discoverFromWebsite);
@@ -439,6 +461,7 @@ document.addEventListener("submit", async (event) => {
 document.addEventListener("change", async (event) => {
   if (event.target.id === "archetypeFilter") { state.archetypeFilter = event.target.value; renderWorkbench(); }
   if (event.target.id === "statusFilter") { state.statusFilter = event.target.value; renderWorkbench(); }
+  if (event.target.id === "socialRound") { state.socialRound = event.target.value; renderWorkbench(); }
   if (event.target.id === "importEvidenceFile") {
     const file = event.target.files?.[0];
     event.target.value = "";
@@ -468,6 +491,7 @@ document.addEventListener("click", async (event) => {
     if (target.dataset.view) { state.view = target.dataset.view; if (state.view === "calibration") await loadCalibration(); renderWorkbench({ resetScroll: true, focusTitle: true }); setMobilePane("workbench"); return; }
     if (target.dataset.floor) { state.floor = Number(target.dataset.floor); renderWorkbench(); return; }
     if (target.dataset.channel) { state.channel = target.dataset.channel; renderWorkbench(); return; }
+    if (target.dataset.explainThread) { setMobilePane("chat"); await sendChat(`Why did this spread in the simulation: "${target.dataset.explainThread}"?`); return; }
     if (target.dataset.question) { await sendChat(target.dataset.question); return; }
     if (target.dataset.run) { await loadRun(target.dataset.run); return; }
     if (target.hasAttribute("data-edit-character")) { openCharacter(); return; }
