@@ -25,7 +25,7 @@ npm start
 
 Open **http://localhost:4740**.
 
-The PawsMatch demo loads automatically and needs no credentials. On a first visit you'll see a short onboarding tour (reopen it with the **?** button in the header) and the disclaimer strip under the header. Explore the demo first if you want to see the finished workbench before spending anything.
+The app starts empty — no simulated data is loaded until you ask for it. Click **Explore demo** in the header (or on the empty workbench) to load the illustrated PawsMatch case study; it needs no credentials. On a first visit you'll see a short onboarding tour (reopen it with the **?** button in the header) and the disclaimer strip under the header.
 
 ## Before a live run
 

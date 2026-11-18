@@ -22,7 +22,7 @@ A founder or product operator is deciding what to build, remove, automate, or ch
 - Stream a conversation with the single guide and ask about selected customers or results.
 - Inject a custom God's-eye pivot and re-simulate only Round 3 while preserving Round 1, Round 2, and customer identities.
 - Record weekly real observations with cohort size, measured/estimated status, linked run, hypothesis, and optional falsifiable success threshold; export or import them, include them in new runs, and compare cohort-normalised predictions with outcomes in the Calibration view.
-- Explore a clearly labelled illustrative PawsMatch demo without API keys or paid calls.
+- Start empty: no simulated data is loaded until the founder runs a simulation or explicitly opens the clearly labelled illustrative PawsMatch demo, which needs no API keys or paid calls.
 
 ## Constraints and trust boundaries
 - White-and-blue visual theme, with Revalida's calm workbench density and ChatGPT-style conversation as references rather than screens to copy.
