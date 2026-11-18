@@ -298,9 +298,15 @@ async function discoverFromWebsite() {
   try { parsed = new URL(raw); } catch { toast("Enter a valid website URL, including https://."); return; }
   if (!["http:", "https:"].includes(parsed.protocol)) { toast("Only http and https websites can be read."); return; }
   if (["localhost", "127.0.0.1", "::1", "0.0.0.0"].includes(parsed.hostname)) { toast("Local or internal addresses cannot be read."); return; }
-  button.disabled = true; button.textContent = "Reading the site…";
+  const started = Date.now();
+  const status = $("#discoverStatus");
+  button.disabled = true;
+  button.innerHTML = `<span class="btn-spinner"></span>Reading the site…`;
+  status.hidden = false;
   try {
     const result = await postJson("/api/intake/discover", { name: $("#startupName").value, websiteUrl: raw });
+    status.innerHTML = `<i></i>Filling the fields…`;
+    await new Promise((resolve) => setTimeout(resolve, Math.max(0, 450 - (Date.now() - started))));
     let filled = 0;
     for (const [key, value] of Object.entries(result.fields || {})) {
       const element = document.getElementById(key);
@@ -308,7 +314,11 @@ async function discoverFromWebsite() {
     }
     toast(filled ? `Filled ${filled} field${filled === 1 ? "" : "s"} from the site.` : (result.notes || "Nothing usable found — fill the form manually."));
   } catch (error) { toast(error.message); }
-  finally { button.disabled = false; button.textContent = original; }
+  finally {
+    await new Promise((resolve) => setTimeout(resolve, Math.max(0, 450 - (Date.now() - started))));
+    button.disabled = false; button.textContent = original; status.hidden = true;
+    status.innerHTML = `<i></i>Reading the website…`;
+  }
 }
 async function startSimulation() {
   const button = $("#startRunBtn"); button.disabled = true; showError("#simulationError", "");
