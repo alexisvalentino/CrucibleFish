@@ -37,11 +37,15 @@ async function loadCalibration() {
 }
 function renderOnboardingStep() {
   const steps = [...document.querySelectorAll("#onboardingDialog .onboarding-step")];
-  const labels = ["Start here", "Connections", "Your first run", "The workbench", "The weekly loop"];
+  const labels = ["Start here", "Connections", "Your first run", "The workbench", "The weekly loop", "Your guide"];
   steps.forEach((element, index) => { element.hidden = index !== state.onboardingStep; });
   $("#onboardingStepLabel").textContent = `Step ${state.onboardingStep + 1} of ${steps.length} · ${labels[state.onboardingStep] || ""}`;
   $("#onboardingBack").disabled = state.onboardingStep === 0;
   $("#onboardingNext").textContent = state.onboardingStep === steps.length - 1 ? "Start using CrucibleFish" : "Next";
+  if (state.onboardingStep === steps.length - 1) {
+    $("#onboardingName").value = state.character.name || "";
+    $("#onboardingRole").value = state.character.role || "";
+  }
   $("#onboardingDialog .onboarding-body").scrollTop = 0;
 }
 function markOnboardingSeen() { try { localStorage.setItem(ONBOARDING_KEY, "1"); } catch { /* storage may be unavailable */ } }
@@ -394,7 +398,15 @@ $("#onboardingBack").addEventListener("click", () => { if (state.onboardingStep 
 $("#onboardingNext").addEventListener("click", () => {
   const count = document.querySelectorAll("#onboardingDialog .onboarding-step").length;
   if (state.onboardingStep < count - 1) { state.onboardingStep += 1; renderOnboardingStep(); }
-  else { markOnboardingSeen(); closeDialog("onboardingDialog"); }
+  else {
+    const name = $("#onboardingName").value.trim();
+    const role = $("#onboardingRole").value.trim();
+    if (name) {
+      state.character = { ...state.character, name, role: role || state.character.role };
+      saveCharacter(state.character); renderCharacter(); renderHeader(); renderMessages();
+    }
+    markOnboardingSeen(); closeDialog("onboardingDialog");
+  }
 });
 $("#onboardingDialog").addEventListener("close", markOnboardingSeen);
 $("#disclaimerDetailsBtn").addEventListener("click", () => openDialog("limitsDialog"));
