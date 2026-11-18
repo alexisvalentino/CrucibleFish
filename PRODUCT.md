@@ -21,6 +21,7 @@ A founder or product operator is deciding what to build, remove, automate, or ch
 - Inspect feature triage, the four-stage data flywheel, a 90-day plan, market estimates, and VC matches.
 - Stream a conversation with the single guide and ask about selected customers or results.
 - Inject a custom God's-eye pivot and re-simulate only Round 3 while preserving Round 1, Round 2, and customer identities.
+- Record weekly real observations with cohort size, measured/estimated status, linked run and hypothesis; export or import them, include them in new runs, and compare predictions with outcomes in the Calibration view.
 - Explore a clearly labelled illustrative PawsMatch demo without API keys or paid calls.
 
 ## Constraints and trust boundaries

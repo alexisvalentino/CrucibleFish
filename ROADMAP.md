@@ -35,9 +35,10 @@ Real data is first-class and visually separate from synthetic output. Every week
 
 ### Phase E0 — Weekly evidence log (shipped)
 
-- Add an **Evidence log** view where the founder records one observation per week: week ending, interviews, active customers, churned, paid conversions, GMV, and a short note.
-- Entries are stored locally in the browser, kept separate from run JSON.
+- Add an **Evidence log** view where the founder records one observation per week: week ending, cohort size, measured vs. estimated, linked run and hypothesis, interviews, active customers, churned, paid conversions, GMV, and a note.
+- Entries are stored locally in the browser, kept separate from run JSON, and can be exported/imported as JSON or CSV.
 - The guide receives a compact digest of real observations and treats them as *observed fact*, never as simulation output.
+- The last eight observations can be appended to a new run's seed material with an explicit checkbox.
 - Deliberately not a metric dashboard: the point is a trustworthy ledger of what actually happened.
 
 ### Phase E1 — Hypothesis ledger (next)
@@ -47,11 +48,11 @@ Real data is first-class and visually separate from synthetic output. Every week
 - The guide challenges the hypothesis rather than confirming it.
 - Acceptance: a founder can list what they believe, how they would know it is wrong, and when they will check.
 
-### Phase E2 — Calibration view
+### Phase E2 — Calibration view (partly shipped)
 
-- Overlay the same metrics side by side: synthetic prediction vs. observed weekly result.
-- Track error over time and show which kinds of claims the model is consistently wrong about.
-- Add stability across multiple runs: report the range, not a single number, so wild swings are visible.
+- **Shipped:** overlay the same metrics side by side for observations linked to a run — Day-30 active, paying, churn, and GMV — with a signed difference and a caveat that cohorts and timing may differ.
+- Still to do: track error over time and show which kinds of claims the model is consistently wrong about.
+- Still to do: report stability across multiple runs as a range, not a single number, so wild swings are visible.
 - Acceptance: after several weeks, the founder can see whether the simulation's directional calls held up.
 
 ### Phase E3 — Weekly review rhythm

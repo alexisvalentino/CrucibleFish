@@ -59,8 +59,10 @@ With the defaults that is seven calls; with `SWARM_BATCH_SIZE=10` it is twelve. 
 6. **Market & capital** — market graph, sizing hypotheses, and a VC shortlist. Verify all of it externally.
 7. **Guide conversation** — ask about results, or about a customer by number (`#42`) or name. The guide is a reasoning partner, not an oracle.
 8. **God's-eye pivot** — inject a Day-30 intervention. Only Round 3 changes; identities and Rounds 1–2 stay immutable.
-9. **Evidence log** — record one real observation per week. Entries stay in this browser and are fed to the guide as observed reality, clearly separated from synthetic output.
-10. **Explore demo** restores the original illustrative PawsMatch run at any time.
+9. **Evidence log** — record one real observation per week with cohort size, measured/estimated status, a linked run and hypothesis, the numbers, and a note. Export or import the log as JSON/CSV. Entries stay in this browser.
+10. **Include weekly evidence in this run** — the new-simulation form appends the last eight observations to the seed material, labelled as real observations. Uncheck it to keep evidence conversation-only.
+11. **Calibration** — compare a linked run's predicted Day-30 active, paying, churn, and GMV with what you actually observed, metric by metric.
+12. **Explore demo** restores the original illustrative PawsMatch run at any time.
 
 ## Getting more accurate results
 
@@ -68,6 +70,7 @@ With the defaults that is seven calls; with `SWARM_BATCH_SIZE=10` it is twelve. 
 - Run a few variations and keep patterns that stay stable; ignore numbers that swing wildly.
 - Ask the guide to challenge assumptions, not to predict revenue.
 - Validate important claims with real interviews, product analytics, and primary sources before committing time or money.
+- Watch the Calibration view over several weeks: a persistent gap is worth investigating, a single week is just noise.
 - The output is a test plan, not the test result. See **ROADMAP.md** for the weekly experimentation direction.
 
 ## Validation
