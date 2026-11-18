@@ -15,8 +15,9 @@ const SECURITY = { "x-content-type-options": "nosniff", "referrer-policy": "no-r
 const clean = (value, max = 500) => String(value || "").trim().slice(0, max);
 
 function send(res, status, body, type = "application/json; charset=utf-8") {
-  res.writeHead(status, { ...SECURITY, "content-type": type, "cache-control": "no-store" });
-  res.end(typeof body === "string" ? body : JSON.stringify(body));
+  const text = typeof body === "string" ? body : JSON.stringify(body);
+  res.writeHead(status, { ...SECURITY, "content-type": type, "cache-control": "no-store", "content-length": Buffer.byteLength(text) });
+  res.end(text);
 }
 function event(res, data) { res.write(`data: ${JSON.stringify(data)}\n\n`); }
 function settingsFrom(body = {}) {
@@ -86,7 +87,10 @@ export function createAppServer(options = {}) {
         return send(res, 200, result);
       }
       if (route === "/api/demo/reset" && req.method === "POST") { demo = createDemoSimulation(); return send(res, 200, demo); }
-      if (route === "/api/demo" && req.method === "GET") return send(res, 200, demo);
+      if (route === "/api/demo" && req.method === "GET") {
+        if (url.searchParams.get("reset") === "1") demo = createDemoSimulation();
+        return send(res, 200, demo);
+      }
       if (route === "/api/runs" && req.method === "GET") {
         const saved = fs.readdirSync(sessionsDir).filter((file) => file.endsWith(".json")).map((file) => {
           try {

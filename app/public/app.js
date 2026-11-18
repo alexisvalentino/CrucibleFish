@@ -54,12 +54,16 @@ function initialMessages(result) {
 function showError(selector, message) { const element = $(selector); if (!element) return; element.textContent = message || ""; element.hidden = !message; }
 function scrollChat() { requestAnimationFrame(() => { const scroll = $("#chatScroll"); scroll.scrollTop = scroll.scrollHeight; }); }
 function renderMessages() {
-  $("#chatInner").innerHTML = state.messages.map((message) => message.role === "user"
-    ? `<article class="message user"><div class="message-content">${fmt(message.content)}</div></article>`
-    : `<article class="message assistant">${avatar(state.character, "avatar message-avatar")}<div><div class="message-name">${esc(state.character.name)}</div><div class="message-content">${fmt(message.content)}</div></div></article>`).join("");
+  const idle = !state.messages.length && !state.liveRun;
+  $("#chatInner").innerHTML = idle
+    ? `<article class="message assistant">${avatar(state.character, "avatar message-avatar")}<div><div class="message-name">${esc(state.character.name)}</div><div class="message-content"><h1 class="welcome-title">Ready when you are.</h1><p>Start a validation run with your own startup brief, or load the PawsMatch demo to see the workbench in action. Once a simulation is loaded, ask me about the customers, the friction, or what to cut.</p><p>Everything here is a synthetic hypothesis — your real weekly observations go in the Evidence log.</p></div></div></article>`
+    : state.messages.map((message) => message.role === "user"
+      ? `<article class="message user"><div class="message-content">${fmt(message.content)}</div></article>`
+      : `<article class="message assistant">${avatar(state.character, "avatar message-avatar")}<div><div class="message-name">${esc(state.character.name)}</div><div class="message-content">${fmt(message.content)}</div></div></article>`).join("");
   $("#typingRow").hidden = !state.streaming || state.messages.at(-1)?.streaming;
-  $("#chatSend").disabled = state.streaming || Boolean(state.liveRun);
-  $("#chatInput").disabled = Boolean(state.liveRun);
+  $("#chatSend").disabled = state.streaming || Boolean(state.liveRun) || idle;
+  $("#chatInput").disabled = Boolean(state.liveRun) || idle;
+  $("#chatInput").placeholder = idle ? "Load a simulation to ask the guide…" : `Ask ${state.character.name} about the simulation…`;
   scrollChat();
 }
 function queueMessageRender() { if (chatRenderQueued) return; chatRenderQueued = true; requestAnimationFrame(() => { chatRenderQueued = false; renderMessages(); }); }
@@ -79,11 +83,11 @@ function renderHeader() {
     $("#runIdentity").innerHTML = `<strong>${esc(state.liveRun.startupName || "Your simulation")}</strong><span>Running now</span>`;
     $("#chatMode").textContent = `${state.settings.model} · Running`;
   } else {
-    $("#runIdentity").innerHTML = `<strong>Loading simulation</strong><span>Preparing the workbench</span>`;
-    $("#chatMode").textContent = "Preparing the guide";
+    $("#runIdentity").innerHTML = `<strong>No simulation loaded</strong><span>Start one or explore the demo</span>`;
+    $("#chatMode").textContent = "Load a simulation to chat";
   }
   $("#activeModel").textContent = state.settings.model;
-  const suggestions = ["Why do customers churn?", "What should I cut first?", "Who pays after the pivot?"];
+  const suggestions = state.result ? ["Why do customers churn?", "What should I cut first?", "Who pays after the pivot?"] : [];
   $("#chatSuggestions").innerHTML = suggestions.map((question) => `<button class="suggestion" type="button" data-question="${esc(question)}">${esc(question)}</button>`).join("");
 }
 function renderHistory() {
@@ -136,7 +140,12 @@ function workbenchFocusSelector() {
 }
 function renderWorkbench({ resetScroll = false, focusTitle = false } = {}) {
   const focusSelector = workbenchFocusSelector();
-  if (!state.result) { $("#workbenchContent").innerHTML = state.liveRun ? `<div class="empty-state"><strong>Building your simulation</strong><p>The market graph, critique, and customer batches are running. Results will appear here when the run completes.</p></div>` : `<div class="empty-state">Loading the simulation workbench…</div>`; return; }
+  if (!state.result) {
+    $("#workbenchContent").innerHTML = state.liveRun
+      ? `<div class="empty-state"><strong>Building your simulation</strong><p>The market graph, critique, and customer batches are running. Results will appear here when the run completes.</p></div>`
+      : `<div class="empty-state start-state"><strong>Nothing to show yet.</strong><p>Run your own simulation with a startup brief, or load the illustrated PawsMatch case study to see how the workbench works.</p><div class="start-actions"><button class="button primary" id="emptyNewBtn" type="button">New simulation</button><button class="button secondary" id="emptyDemoBtn" type="button">Explore demo</button></div><p class="start-note">Your real weekly observations go in the Evidence log, which is always available.</p></div>`;
+    return;
+  }
   const titles = { simulation: ["Simulation", "Three floors. One cumulative customer memory."], critique: ["Venture critique", "Scope, retention, and the data-to-AI flywheel."], market: ["Market & capital", "Reality graph, market hypotheses, and investor research."], evidence: ["Evidence log", "Real weekly observations, separate from synthetic results."], calibration: ["Calibration", "Predicted results compared with real weekly observations."] };
   $("#viewTitle").textContent = titles[state.view][0]; $("#viewSubtitle").textContent = titles[state.view][1];
   document.querySelectorAll("[data-view]").forEach((button) => button.classList.toggle("active", button.dataset.view === state.view));
@@ -299,7 +308,7 @@ function useResult(result, restoreChat = true) {
 }
 async function loadDemo() {
   state.liveSource?.close(); state.liveRun = null; stopProgressTimer();
-  const result = await postJson("/api/demo/reset", {}); useResult(result, false); renderProgress(); toast("PawsMatch demo restored.");
+  const result = await getJson("/api/demo?reset=1"); useResult(result, false); renderProgress(); toast("PawsMatch demo loaded.");
 }
 async function loadRun(id) {
   const response = await getJson(`/api/runs/${id}`);
@@ -454,6 +463,8 @@ document.addEventListener("click", async (event) => {
     if (target.id === "exportEvidenceCsv") { downloadText("cruciblefish-evidence.csv", evidenceCsv(state.evidence), "text/csv"); return; }
     if (target.id === "importEvidenceBtn") { $("#importEvidenceFile").click(); return; }
     if (target.dataset.mobilePane) { setMobilePane(target.dataset.mobilePane); return; }
+    if (target.id === "emptyNewBtn") { fillIntake(blankInput()); openDialog("simulationDialog"); return; }
+    if (target.id === "emptyDemoBtn") { await loadDemo(); return; }
     if (target.dataset.view) { state.view = target.dataset.view; if (state.view === "calibration") await loadCalibration(); renderWorkbench({ resetScroll: true, focusTitle: true }); setMobilePane("workbench"); return; }
     if (target.dataset.floor) { state.floor = Number(target.dataset.floor); renderWorkbench(); return; }
     if (target.dataset.channel) { state.channel = target.dataset.channel; renderWorkbench(); return; }
@@ -507,8 +518,7 @@ async function boot() {
   try {
     const [config, demo, runs] = await Promise.all([getJson("/api/config"), getJson("/api/demo"), getJson("/api/runs")]);
     state.serverConfig = config; state.demoInput = structuredClone(demo.input); state.history = runs.runs;
-    state.result = demo; state.messages = loadChat(demo.id);
-    if (!state.messages.length) state.messages = initialMessages(demo);
+    state.result = null; state.messages = []; state.view = "simulation"; state.floor = 2;
     renderAll();
     let onboardingSeen = false;
     try { onboardingSeen = localStorage.getItem(ONBOARDING_KEY) === "1"; } catch { /* storage may be unavailable */ }
