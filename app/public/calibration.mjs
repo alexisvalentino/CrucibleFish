@@ -33,6 +33,15 @@ export function compareEntry(telemetry = {}, entry = {}) {
   return { cohort: usableCohort, metrics, threshold, verdict };
 }
 
+export function interpretDifference(difference, unit = "%") {
+  if (difference === null || difference === undefined || !Number.isFinite(difference)) return { label: "Not comparable", tone: "none" };
+  if (difference === 0) return { label: "Matched", tone: "none" };
+  const suffix = unit === "%" ? " pts" : " USD";
+  return difference > 0
+    ? { label: `Reality higher by ${Math.abs(difference)}${suffix}`, tone: "up" }
+    : { label: `Reality lower by ${Math.abs(difference)}${suffix}`, tone: "down" };
+}
+
 export function calibrationSummary(rows = []) {
   const collected = {};
   for (const row of rows) {

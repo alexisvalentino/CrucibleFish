@@ -1,7 +1,7 @@
 import "./test-env.mjs";
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { calibrationSummary, compareEntry } from "../public/calibration.mjs";
+import { calibrationSummary, compareEntry, interpretDifference } from "../public/calibration.mjs";
 
 const telemetry = { day30Active: 65, pivotedPaying: 56, pivotedMonthlyGmv: 597 };
 const entry = { cohortSize: 40, active: 26, churned: 10, paid: 6, gmv: 110, thresholdMetric: "PAYING", thresholdValue: 20 };
@@ -34,6 +34,14 @@ test("calibration evaluates a falsifiable threshold", () => {
 test("missing cohorts leave differences empty instead of inventing numbers", () => {
   const result = compareEntry(telemetry, { active: 26, gmv: 110 });
   assert.ok(result.metrics.every((metric) => metric.difference === null));
+});
+
+test("differences are explained in plain language", () => {
+  assert.equal(interpretDifference(10).label, "Reality higher by 10 pts");
+  assert.equal(interpretDifference(-4).label, "Reality lower by 4 pts");
+  assert.equal(interpretDifference(0).label, "Matched");
+  assert.equal(interpretDifference(null).label, "Not comparable");
+  assert.equal(interpretDifference(-129, "USD").label, "Reality lower by 129 USD");
 });
 
 test("summary reports average and range across weekly observations", () => {
