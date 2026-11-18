@@ -1,0 +1,14 @@
+node_modules/
+.env
+.env.*
+!.env.example
+data/sessions/*.json
+qa/*.webm
+qa/*.png
+qa/**/*.webm
+qa/**/*.png
+qa/*.network-*
+.impeccable/mocks/
+.impeccable/review/
+.impeccable/build/
+.taste-skill/

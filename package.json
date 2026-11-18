@@ -1,0 +1,15 @@
+{
+  "name": "cruciblefish",
+  "version": "1.0.0",
+  "private": true,
+  "description": "A single-guide, 100-customer temporal startup simulation workbench.",
+  "type": "module",
+  "scripts": {
+    "start": "node app/server.mjs",
+    "test": "node --test app/scripts/openai.test.mjs app/scripts/simulation.test.mjs app/scripts/evidence.test.mjs app/scripts/http.test.mjs app/scripts/ui-grid.test.mjs",
+    "check": "node app/scripts/check.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
