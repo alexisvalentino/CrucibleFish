@@ -32,7 +32,6 @@ function downloadText(filename, text, type) {
 async function loadCalibration() {
   const ids = [...new Set((state.evidence || []).map((entry) => entry.runId).filter(Boolean))];
   await Promise.all(ids.map(async (id) => {
-    if (state.calibrationRuns[id]) return;
     try { state.calibrationRuns[id] = await getJson(`/api/runs/${id}`); } catch { /* an unavailable run stays unloaded */ }
   }));
 }
@@ -383,6 +382,8 @@ document.addEventListener("submit", async (event) => {
       source: $("#evidenceSource").value,
       runId: $("#evidenceRun").value,
       hypothesis: $("#evidenceHypothesis").value,
+      thresholdMetric: $("#evidenceThresholdMetric").value,
+      thresholdValue: $("#evidenceThresholdValue").value,
       interviews: $("#evidenceInterviews").value,
       active: $("#evidenceActive").value,
       churned: $("#evidenceChurned").value,

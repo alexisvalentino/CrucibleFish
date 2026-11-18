@@ -16,6 +16,8 @@ export function normalizeEntry(raw = {}) {
     source: source === "ESTIMATED" ? "ESTIMATED" : "MEASURED",
     runId: String(raw.runId || "").slice(0, 80),
     hypothesis: String(raw.hypothesis || "").slice(0, 200),
+    thresholdMetric: ["ACTIVE", "PAYING", "CHURN", "GMV"].includes(String(raw.thresholdMetric || "").toUpperCase()) ? String(raw.thresholdMetric).toUpperCase() : "NONE",
+    thresholdValue: optionalNumber(raw.thresholdValue),
     interviews: optionalNumber(raw.interviews),
     active: optionalNumber(raw.active),
     churned: optionalNumber(raw.churned),
@@ -51,7 +53,10 @@ export function evidenceDigest(entries = [], limit = 8) {
     if (entry.gmv !== null && entry.gmv !== undefined) parts.push(`$${entry.gmv} observed GMV`);
     const note = String(entry.note || "none recorded").replace(/\s+/g, " ").slice(0, 280);
     const hypothesis = entry.hypothesis ? ` Hypothesis: ${String(entry.hypothesis).replace(/\s+/g, " ").slice(0, 160)}.` : "";
-    return `- ${parts.join("; ")}.${hypothesis} Observation: ${note}`;
+    const threshold = entry.thresholdMetric && entry.thresholdMetric !== "NONE" && entry.thresholdValue !== null && entry.thresholdValue !== undefined
+      ? ` Success threshold: ${entry.thresholdMetric} ${["CHURN", "GMV"].includes(entry.thresholdMetric) ? "at most" : "at least"} ${entry.thresholdValue}.`
+      : "";
+    return `- ${parts.join("; ")}.${hypothesis}${threshold} Observation: ${note}`;
   });
   return rows.length ? `REAL OBSERVED EVIDENCE entered by the founder (do NOT treat this as simulated):\n${rows.join("\n")}` : "";
 }
@@ -62,7 +67,7 @@ const csvCell = (value) => {
 };
 
 export function evidenceCsv(entries = []) {
-  const columns = ["weekEnding", "cohortSize", "source", "runId", "hypothesis", "interviews", "active", "churned", "paid", "gmv", "note", "createdAt"];
+  const columns = ["weekEnding", "cohortSize", "source", "runId", "hypothesis", "thresholdMetric", "thresholdValue", "interviews", "active", "churned", "paid", "gmv", "note", "createdAt"];
   const rows = (Array.isArray(entries) ? entries : []).map((entry) => columns.map((key) => csvCell(entry[key])).join(","));
   return [columns.join(","), ...rows].join("\r\n");
 }
