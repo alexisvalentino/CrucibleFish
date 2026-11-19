@@ -1,94 +1,81 @@
 # CrucibleFish
 
-A local-first startup-validation workbench. One persistent AI guide, 100 synthetic customers, and three temporal floors (Day 1, Day 14, Day 30) let you pressure-test a startup idea before you invest more time in it.
+A local-first startup-validation workbench. One persistent AI guide, 100 synthetic customers, and three time floors (Day 1, Day 14, Day 30) let you pressure-test a startup idea before you spend weeks building it.
 
-The guide fronts a chat conversation. The workbench beside it exposes the underlying market graph, social contagion, customer memories, telemetry, feature triage, and market hypotheses.
+## Run it locally
 
-**Important:** every result is a synthetic hypothesis, not customer research, a revenue forecast, or verified market sizing. The app shows a persistent disclaimer; **Read the limits** explains the full boundary. Use the output to design real tests, not to replace them.
+**Requirements:** Node.js 20 or newer. No package install, no database, no API key needed to try it.
 
-## Why I built this
-
-I run a network of builders, and we catch ourselves reaching for AI too often. It is easy to generate a confident-looking plan and mistake it for real understanding. I wanted a place where an idea could be pressure-tested before anyone spends weeks building it: 100 synthetic customers with different habits and budgets, three time floors, social contagion, and a God's-eye pivot you can inject when the picture changes.
-
-MiroFish was the inspiration for the swarm — the market graph, collective memory, and the ability to intervene in a running world. CrucibleFish keeps that spirit but stays local, dependency-free, and explicit about what the output is: a hypothesis workbench, not a prediction engine.
-
-That is also why the disclaimer is the first thing you see, and why I added the **Evidence log**. Every week you can record what actually happened — interviews, churn, payments, the surprising thing a customer said — and the guide reasons over those real observations alongside the simulation. The machine proposes; you decide. Your own discernment comes first. The simulation is a mirror and a stress test, never the authority.
-
-## Quick start
-
-Requires Node.js 20 or newer. There are no package dependencies and no install step.
-
-```powershell
-cd C:\Users\alexi\vscode\cruciblefish
+```bash
+git clone https://github.com/alexisvalentino/CrucibleFish.git
+cd CrucibleFish
 npm start
 ```
 
-Open **http://localhost:4740**.
+Then open **http://localhost:4740** in your browser.
 
-The app starts empty — no simulated data is loaded until you ask for it. Click **Explore demo** in the header (or on the empty workbench) to load the illustrated PawsMatch case study; it needs no credentials. On a first visit you'll see a short onboarding tour (reopen it with the **?** button in the header) and the disclaimer strip under the header.
+To stop the server, press **Ctrl+C** in the terminal. To change the port, set `PORT=4741` in `.env` (see `.env.example`).
 
-## Before a live run
+The app starts empty — no demo data is loaded until you ask for it. Click **Explore demo** in the header to load the illustrated PawsMatch case study. A first visit shows a short onboarding tour (reopen it with the **?** button) where you can name your guide.
 
-Open **AI connections** from the header:
+## Connect your own AI key (optional)
 
-- **OpenAI API key** — paste a key here, or set `OPENAI_API_KEY` in `.env`. Without a key you can still use the illustrative demo.
-- **Response model** — used for the venture critic and guide chat. Defaults to `gpt-4o`.
-- **Fast swarm model** — used for the ontology and customer batches. Defaults to `gpt-4o-mini` on official connections, or the response model on a custom endpoint.
-- **Custom base URL** — any OpenAI-compatible Chat Completions endpoint. Structured Outputs (`json_schema`) are attempted first, with `json_object` fallback.
+Open **AI connections** (gear icon in the header):
 
-Keys are sent only from the browser to the local Node server, then to your configured endpoint. They are never written into run JSON, run listings, or the settings API. **Remember keys in this browser** is opt-in; otherwise keys stay in tab-session storage. `.env` is gitignored.
+- **OpenAI API key** — paste it here, or set `OPENAI_API_KEY` in `.env`. Without a key you can still use the demo and most of the workbench.
+- **Response model** — drives the venture critic and guide chat. Default `gpt-4o`.
+- **Fast swarm model** — drives the ontology and customer batches. Default `gpt-4o-mini`.
+- **Custom base URL** — any OpenAI-compatible Chat Completions endpoint. Structured Outputs are attempted first, with `json_object` fallback.
+
+**AI connections → Test connection** does a free, read-only `GET /models` check.
+
+Keys go browser → local Node server → your configured endpoint. They are never written into run JSON, run listings, or the settings API, and `.env` is gitignored. **Remember keys in this browser** is opt-in; otherwise keys stay in tab-session storage.
 
 ### Endpoint tuning
 
-A live run makes **2 + N provider calls**: one market ontology, one venture critic, and N customer batches (N = `100 / SWARM_BATCH_SIZE`). A custom Round-3 intervention makes N more calls.
+A live run makes **2 + N provider calls**: one ontology, one venture critic, and N customer batches (N = `100 / SWARM_BATCH_SIZE`). An intervention makes N more. Optional `.env` settings for endpoints that reset long or concurrent requests:
 
-Some endpoints reset long or concurrent requests. These optional `.env` settings make the pipeline more tolerant:
+- `SWARM_BATCH_SIZE` — customers per batch, 5–20, default **20** (use **10** if requests reset).
+- `SWARM_CONCURRENCY` — simultaneous batches, 1–5, default **2** (use **1** if concurrent requests reset).
 
-- `SWARM_BATCH_SIZE` — customers per batch, 5–20, default **20**. Lower to **10** if requests are reset.
-- `SWARM_CONCURRENCY` — simultaneous batches, 1–5, default **2**. Lower to **1** if concurrent requests are reset.
+With defaults that is seven calls; with `SWARM_BATCH_SIZE=10` it is twelve. Failed batches are retried once. At list prices a run costs roughly $0.10–0.15; slower endpoints may take several minutes — the animated progress panel shows each stage.
 
-With the defaults that is seven calls; with `SWARM_BATCH_SIZE=10` it is twelve. A batch that fails validation is retried once with a repair instruction. At official list prices a run costs roughly $0.10–0.15 with the default models; your endpoint's pricing may differ. Runs can take several minutes on slower providers — an animated progress panel shows each stage as it completes.
+## What you can do
 
-## How to use it
+1. **New simulation** — enter a startup brief: name, pitch, target customer, geography, business model, pricing, traction, unfair advantages, and optional **seed material** (real interview quotes, analytics, support logs). To save time, enter a website and click **Auto-fill from website** — it reads public metadata and uses a small AI call on the visible text, filling only fields you left empty. Never overwrites your typing.
+2. Add current features (tick routine manual input) and planned roadmap items. **Load PawsMatch preset** fills a worked example.
+3. **Run 100-customer simulation** and watch the progress panel.
+4. **Simulation** view — Day 1 / 14 / 30, the 100-customer grid, and **Social evidence**: channel and round filters, influenced customers linked to their Day-14 actions, and "ask the guide why this spread".
+5. **Venture critique** — feature triage, data flywheel, 90-day plan. **Market & capital** — market graph, sizing hypotheses, VC shortlist.
+6. **Guide conversation** — ask about results or a customer by `#42` or name. The guide is a reasoning partner, not an oracle.
+7. **Intervention** — the floating dock is available on every view; only Day 30 changes.
+8. **Evidence log** — record real weekly observations (cohort size, measured/estimated, linked run, hypothesis, optional success threshold). Export/import as JSON/CSV.
+9. **Calibration** — compare predicted vs observed metrics with plain-language differences, PASS/MISS verdicts, and multi-week ranges.
 
-1. **New simulation** — fill in the brief: name, one-line pitch, target customer, geography, business model (who pays vs. who uses), pricing and packaging, traction, unfair advantages, and optional **seed material**. Seed material is the highest-return accuracy lever: paste real interview quotes, support logs, or analytics notes. To save time, enter a website and click **Auto-fill from website** — it reads the page's public metadata and structured data, then uses a small AI call to extract facts from the visible text when that's thin. It fills only fields you left empty, never overwrites your typing, and leaves unknown fields blank. A spinner and status line show the work in progress. The extraction call costs a fraction of a cent.
-2. Add current features (tick the ones that need routine manual typing) and planned roadmap items with categories. **Load PawsMatch preset** fills a worked example.
-3. **Run 100-customer simulation** and watch the progress panel: market graph, venture critique, each customer batch, then telemetry.
-4. **Simulation** view — move among Day 1, Day 14, and Day 30; filter the 100 customers; inspect **Social evidence**: short-form or community threads with round labels, clickable influenced customers showing their Day-14 action, and an "ask the guide why this spread" button. These are seed threads, not observed interactions.
-5. **Venture critique** — feature triage, the four-stage data flywheel, the 90-day plan.
-6. **Market & capital** — market graph, sizing hypotheses, and a VC shortlist. Verify all of it externally.
-7. **Guide conversation** — ask about results, or about a customer by number (`#42`) or name. The guide is a reasoning partner, not an oracle.
-8. **God's-eye intervention** — open the floating **Intervention** dock from any view. It shows the current pivot and past interventions, and lets you inject a Day-30 change without scrolling. Only Round 3 changes; identities and Rounds 1–2 stay immutable.
-9. **Evidence log** — record one real observation per week with cohort size, measured/estimated status, a linked run and hypothesis, an optional success threshold (e.g. paying rate ≥ 20%), the numbers, and a note. The form opens with a short "how to fill this in" guide and a worked example. Export or import the log as JSON/CSV. Entries stay in this browser.
-10. **Include weekly evidence in this run** — the new-simulation form appends the last eight observations to the seed material, labelled as real observations. Uncheck it to keep evidence conversation-only.
-11. **Calibration** — compare a linked run's predicted Day-30 active, paying, churn, and GMV with what you observed. A built-in 30-second guide explains what to read; bars show simulated vs real values, differences are spelled out in plain language, thresholds show PASS/MISS, and a summary shows the average gap and range across weeks. Estimated entries are de-emphasised.
-12. **Explore demo** restores the original illustrative PawsMatch run at any time.
+All results are **synthetic hypotheses** — not customer research, revenue forecasts, verified market sizing, or investor interest. The app shows a persistent disclaimer; **Read the limits** opens the full boundary. Use the output to design real tests, not to replace them. See **ROADMAP.md** for the weekly experimentation direction.
 
-## Getting more accurate results
+## Why I built this
 
-- Feed real evidence into the seed-material field.
-- Run a few variations and keep patterns that stay stable; ignore numbers that swing wildly.
-- Ask the guide to challenge assumptions, not to predict revenue.
-- Validate important claims with real interviews, product analytics, and primary sources before committing time or money.
-- Watch the Calibration summary over several weeks: a stable range matters more than a single week's gap. Use the threshold verdict as a falsifiable check, not a verdict on the whole idea.
-- The output is a test plan, not the test result. See **ROADMAP.md** for the weekly experimentation direction.
+I run a network of builders, and we catch ourselves reaching for AI too often. It is easy to generate a confident-looking plan and mistake it for real understanding. I wanted a place to pressure-test an idea before anyone spends weeks building it: 100 synthetic customers with different habits and budgets, three time floors, social contagion, and a God's-eye intervention you can inject when the picture changes.
 
-## Validation
+MiroFish inspired the swarm mechanics — market graph, collective memory, and the ability to intervene in a running world. CrucibleFish keeps that spirit but stays local, dependency-free, and explicit about what the output is: a hypothesis workbench, not a prediction engine.
 
-```powershell
-npm test       # 24 tests, mocked providers, no paid calls
+That is why the disclaimer is the first thing you see and why the **Evidence log** exists. Every week you can record what actually happened — interviews, churn, payments, the surprising thing a customer said — and the guide reasons over those real observations. The machine proposes; you decide. Your discernment comes first.
+
+## Verify
+
+```bash
+npm test       # 39 tests, mocked providers, no paid calls
 npm run check  # syntax check across all JavaScript modules
 ```
 
-The suite covers provider normalization and streaming, Structured Output fallback, exact batch sizing, ontology and social-thread validation, stable demo telemetry, immutable Round-3 deltas, weekly evidence storage, MIME types, demo reset, and credential exclusion from saved files. Tests disable `.env` before loading modules, so they stay hermetic even when you have a real key configured.
-
-A full live run was verified with real credentials; automated tests do not make paid calls.
+The suite covers provider normalization, Structured Output fallback, batch sizing, ontology and thread validation, demo telemetry, immutable Round-3 deltas, website extraction, evidence storage, credential exclusion, and HTTP workflows. Tests disable `.env` before loading modules, so they stay hermetic even when you have a real key configured. A full live run was verified separately with real credentials.
 
 ## Project layout
 
 ```text
 app/
-  lib/          OpenAI client, orchestration, prompts, schemas, demo data, telemetry, env
+  lib/          OpenAI client, orchestration, prompts, schemas, discovery, demo data, telemetry, env
   public/       Vanilla JS workbench, styles, local icons, Montserrat assets
   scripts/      Test and syntax-check suites
   server.mjs    Local HTTP, SSE progress, run persistence, static files
@@ -102,4 +89,4 @@ DESIGN.md       Design-system record
 
 ## Provider boundary
 
-Automated tests mock provider calls. Model entitlement, endpoint quirks, latency, and billing can only be verified with your credentials. No image service, Zep, or OASIS dependency is used; the guide avatar is a local initial and all computation runs in this local Node process.
+Automated tests mock provider calls. Model entitlement, endpoint quirks, latency, and billing can only be verified with your own credentials. No image service, Zep, or OASIS dependency is used; the guide avatar is a local initial and all computation runs in this local Node process.
