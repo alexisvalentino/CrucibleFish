@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f5f8fc">
+  <title>CrucibleFish report</title>
+  <link rel="stylesheet" href="/report.css">
+</head>
+<body>
+  <header class="report-toolbar" aria-label="Report controls">
+    <a class="return-link" href="/">Back to CrucibleFish</a>
+    <p>To create a PDF, choose <strong>Save as PDF</strong> in your browser’s print dialog.</p>
+    <button class="print-button" id="printReportBtn" type="button" disabled>Save as PDF</button>
+  </header>
+  <main class="report-shell" id="reportRoot" aria-live="polite" aria-busy="true">
+    <div class="report-loading"><span class="loading-mark" aria-hidden="true"></span><p>Preparing your report from this saved simulation…</p></div>
+  </main>
+  <script type="module" src="/report.js"></script>
+</body>
+</html>

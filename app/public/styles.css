@@ -41,3 +41,7 @@
 
 
 
+/* PDF report entry point */
+.workbench-header-actions{display:flex;align-items:center;gap:7px}.report-export-button{min-height:36px;padding:7px 10px;white-space:nowrap}.report-button-short{display:none}
+@media(max-width:900px){.workbench-header-actions{gap:4px}.report-export-button{min-height:38px;padding:7px 9px}}
+@media(max-width:500px){.report-button-wide{display:none}.report-button-short{display:inline}}

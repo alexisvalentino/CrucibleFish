@@ -19,6 +19,7 @@ A founder or product operator is deciding what to build, remove, automate, or ch
 - Run the live pipeline: ontology plus venture critic, then customer batches sized by `SWARM_BATCH_SIZE` (default five batches of 20) with concurrency limited by `SWARM_CONCURRENCY`.
 - Inspect all 100 customers across Day 1, Day 14, and Day 30, with filters, social threads, episodic memories, and computed raw-versus-pivot telemetry.
 - Inspect feature triage, the four-stage data flywheel, a 90-day plan, market estimates, and VC matches.
+- Export a readable report for a completed run as a PDF using the browser's print-to-PDF flow; build it deterministically from the saved result without another provider call, label synthetic hypotheses, and omit raw seed-material text.
 - Stream a conversation with the single guide and ask about selected customers or results.
 - Inject a custom God's-eye pivot from a floating console available on every view and re-simulate only Round 3 while preserving Round 1, Round 2, and customer identities.
 - Present social threads as clearly labelled seed evidence with round labels, channel filters, and links from influenced customers to their actual Day-14 actions.

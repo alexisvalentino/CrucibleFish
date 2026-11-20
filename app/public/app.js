@@ -144,6 +144,7 @@ function workbenchFocusSelector() {
 }
 function renderWorkbench({ resetScroll = false, focusTitle = false } = {}) {
   const focusSelector = workbenchFocusSelector();
+  $("#exportReportBtn").hidden = !state.result || Boolean(state.liveRun || state.pivoting);
   if (!state.result) {
     $("#workbenchContent").innerHTML = state.liveRun
       ? `<div class="empty-state"><strong>Building your simulation</strong><p>The market graph, critique, and customer batches are running. Results will appear here when the run completes.</p></div>`
@@ -506,6 +507,11 @@ document.addEventListener("click", async (event) => {
     if (target.dataset.removeEvidence) { state.evidence = state.evidence.filter((entry) => entry.id !== target.dataset.removeEvidence); saveEvidence(state.evidence); renderWorkbench(); toast("Observation removed."); return; }
     if (target.id === "exportEvidenceJson") { downloadText("cruciblefish-evidence.json", JSON.stringify(state.evidence, null, 2), "application/json"); return; }
     if (target.id === "exportEvidenceCsv") { downloadText("cruciblefish-evidence.csv", evidenceCsv(state.evidence), "text/csv"); return; }
+    if (target.id === "exportReportBtn") {
+      if (!state.result) return;
+      window.open(`/report.html?run=${encodeURIComponent(state.result.id)}`, "_blank", "noopener");
+      return;
+    }
     if (target.id === "importEvidenceBtn") { $("#importEvidenceFile").click(); return; }
     if (target.dataset.mobilePane) { setMobilePane(target.dataset.mobilePane); return; }
     if (target.id === "emptyNewBtn") { fillIntake(blankInput()); openDialog("simulationDialog"); return; }

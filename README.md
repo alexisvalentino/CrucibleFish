@@ -9,12 +9,12 @@ A local-first startup-validation workbench. One persistent AI guide, 100 synthet
 ```bash
 git clone https://github.com/alexisvalentino/CrucibleFish.git
 cd CrucibleFish
-npm start
+npm run dev
 ```
 
-Then open **http://localhost:4740** in your browser.
+Then open the URL printed in the terminal. By default this is **http://localhost:4740**; if that port is occupied, `npm run dev` prints the next available URL.
 
-To stop the server, press **Ctrl+C** in the terminal. To change the port, set `PORT=4741` in `.env` (see `.env.example`).
+To stop the server, press **Ctrl+C** in the terminal. `npm run dev` uses the configured port (default **4740**) and automatically checks the next 19 ports if it is already occupied. To choose a fixed port, set `PORT=4741` in `.env` (see `.env.example`). `npm start` runs directly on the configured port without the development port fallback.
 
 The app starts empty — no demo data is loaded until you ask for it. Click **Explore demo** in the header to load the illustrated PawsMatch case study. A first visit shows a short onboarding tour (reopen it with the **?** button) where you can name your guide.
 
@@ -51,6 +51,7 @@ With defaults that is seven calls; with `SWARM_BATCH_SIZE=10` it is twelve. Fail
 7. **Intervention** — the floating dock is available on every view; only Day 30 changes.
 8. **Evidence log** — record real weekly observations (cohort size, measured/estimated, linked run, hypothesis, optional success threshold). Export/import as JSON/CSV.
 9. **Calibration** — compare predicted vs observed metrics with plain-language differences, PASS/MISS verdicts, and multi-week ranges.
+10. **PDF report** — open a print-ready summary for any completed run and choose **Save as PDF** in your browser’s print dialog. The report is rendered locally from the saved result, makes no additional AI calls, labels synthetic hypotheses, and omits raw seed-material text.
 
 All results are **synthetic hypotheses** — not customer research, revenue forecasts, verified market sizing, or investor interest. The app shows a persistent disclaimer; **Read the limits** opens the full boundary. Use the output to design real tests, not to replace them. See **ROADMAP.md** for the weekly experimentation direction.
 
