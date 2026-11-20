@@ -2,6 +2,7 @@
   "name": "cruciblefish",
   "version": "1.0.0",
   "private": true,
+  "license": "MIT",
   "description": "A single-guide, 100-customer temporal startup simulation workbench.",
   "type": "module",
   "scripts": {

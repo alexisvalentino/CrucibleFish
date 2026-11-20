@@ -55,6 +55,12 @@ With defaults that is seven calls; with `SWARM_BATCH_SIZE=10` it is twelve. Fail
 
 All results are **synthetic hypotheses** — not customer research, revenue forecasts, verified market sizing, or investor interest. The app shows a persistent disclaimer; **Read the limits** opens the full boundary. Use the output to design real tests, not to replace them. See **ROADMAP.md** for the weekly experimentation direction.
 
+## Open source and contributions
+
+CrucibleFish source code is available under the [MIT License](LICENSE). You may use, fork, edit, and redistribute it, including for commercial use, as long as you keep the copyright and license notice. You do not have to publish your modifications or send them upstream. Contributions are welcome — open an issue or pull request with a change you would like included.
+
+The bundled Montserrat font files are separately licensed under the SIL Open Font License 1.1; see [app/public/fonts/OFL.txt](app/public/fonts/OFL.txt). The project’s MIT license does not replace the font license.
+
 ## Why I built this
 
 I run a network of builders, and we catch ourselves reaching for AI too often. It is easy to generate a confident-looking plan and mistake it for real understanding. I wanted a place to pressure-test an idea before anyone spends weeks building it: 100 synthetic customers with different habits and budgets, three time floors, social contagion, and a God's-eye intervention you can inject when the picture changes.
