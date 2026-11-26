@@ -8,6 +8,7 @@ const choices = (...values) => ({ type: "string", enum: values });
 
 const archetype = choices("HAIR_ON_FIRE_POWER_USER", "PRAGMATIC_URBAN_MAINSTREAM", "SKEPTICAL_INCUMBENT_LOYALIST", "PRICE_SENSITIVE_FREE_RIDER", "B2B_SUPPLY_SIDE_PARTNER");
 const action = choices("ADOPT_AND_EVANGELIZE", "ADOPT_PASSIVELY", "POST_FRICTION_COMPLAINT", "INFLUENCED_TO_CHURN", "BOUNCE_IMMEDIATELY", "CONVERT_TO_PAID");
+const baselineLifecycle = choices("PAYING_CHAMPION", "FREE_ACTIVE_DATA_CONTRIBUTOR", "CHURNED_PERMANENTLY");
 const lifecycle = choices("PAYING_CHAMPION", "FREE_ACTIVE_DATA_CONTRIBUTOR", "SAVED_BY_GODS_EYE_PIVOT", "CHURNED_PERMANENTLY");
 
 const personaProperties = {
@@ -16,11 +17,11 @@ const personaProperties = {
   specificIdentityContext: str, incumbentToolsUsed: list(str),
   round1Day1Action: action, round1ReactionNote: str,
   round2Day14ActionRawIdea: action, round2SocialContagionNote: str,
-  round3Day30ActionAfterPivot: action, round3PivotReactionNote: str,
+  round3Day30Action: action, round3Day30ReactionNote: str,
   episodicMemoryLog: { type: "array", items: str, minItems: 3, maxItems: 3 },
   favoriteFeature: str, mostHatedFeature: str,
-  willingnessToPayMonthlyUsdBeforePivot: num, willingnessToPayMonthlyUsdAfterPivot: num,
-  finalLifecycleStatus: lifecycle,
+  willingnessToPayMonthlyUsdDay14: num, willingnessToPayMonthlyUsdDay30: num,
+  finalLifecycleStatus: baselineLifecycle,
 };
 export const PERSONA_SCHEMA = obj(personaProperties);
 export const swarmSchema = (size = 20) => obj({ personas: { type: "array", items: PERSONA_SCHEMA, minItems: size, maxItems: size } });
@@ -31,7 +32,7 @@ const edge = obj({ source: str, target: str, relationship: choices("REQUIRES_MAN
 const thread = obj({
   threadId: str, round: { type: "integer", enum: [1, 2, 3] }, channel: choices("SHORT_FORM_TIKTOK_X", "COMMUNITY_REDDIT_FB_GROUP"),
   authorPersonaId: int, authorName: str, authorArchetype: archetype, postTitleOrHook: str, postBody: str,
-  upvotes: int, replyCount: int, sentiment: choices("VIRAL_PRAISE", "SKEPTICAL_CRITIQUE", "CHURN_CASCADE_TRIGGER", "PIVOT_WINBACK"),
+  upvotes: int, replyCount: int, sentiment: choices("VIRAL_PRAISE", "SKEPTICAL_CRITIQUE", "CHURN_CASCADE_TRIGGER"),
   triggeredByFeature: str, influencedPersonaIds: list(int),
 });
 export const ONTOLOGY_SCHEMA = obj({ knowledgeGraph: obj({ nodes: list(node), edges: list(edge) }), socialThreads: { type: "array", items: thread, minItems: 6, maxItems: 6 } });
@@ -52,8 +53,8 @@ export const VENTURE_SCHEMA = obj({
 });
 
 const deltaFields = obj({
-  id: int, round3Day30ActionAfterPivot: action, round3PivotReactionNote: str,
-  willingnessToPayMonthlyUsdAfterPivot: num, finalLifecycleStatus: lifecycle, episodicMemoryEntry: str,
+  id: int, round3Day30Action: action, round3Day30ReactionNote: str,
+  willingnessToPayMonthlyUsdDay30: num, finalLifecycleStatus: lifecycle, episodicMemoryEntry: str,
 });
 export const deltaSchema = (size = 20) => obj({ deltas: { type: "array", items: deltaFields, minItems: size, maxItems: size } });
 export const DELTA_SCHEMA = deltaSchema(20);

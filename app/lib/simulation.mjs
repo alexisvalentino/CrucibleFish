@@ -27,35 +27,35 @@ for (let startId = 1; startId <= 100; startId += BATCH_SIZE) {
   BATCH_CONFIGS.push({ startId, endId, distribution });
 }
 const ACTIONS = new Set(["ADOPT_AND_EVANGELIZE", "ADOPT_PASSIVELY", "POST_FRICTION_COMPLAINT", "INFLUENCED_TO_CHURN", "BOUNCE_IMMEDIATELY", "CONVERT_TO_PAID"]);
-const STATUSES = new Set(["PAYING_CHAMPION", "FREE_ACTIVE_DATA_CONTRIBUTOR", "SAVED_BY_GODS_EYE_PIVOT", "CHURNED_PERMANENTLY"]);
-const REQUIRED_FIELDS = ["name", "locationCity", "occupation", "archetype", "specificIdentityContext", "round1ReactionNote", "round2SocialContagionNote", "round3PivotReactionNote", "favoriteFeature", "mostHatedFeature", "finalLifecycleStatus"];
+const BASELINE_STATUSES = new Set(["PAYING_CHAMPION", "FREE_ACTIVE_DATA_CONTRIBUTOR", "CHURNED_PERMANENTLY"]);
+const SCENARIO_STATUSES = new Set([...BASELINE_STATUSES, "SAVED_BY_GODS_EYE_PIVOT"]);
+const REQUIRED_FIELDS = ["name", "locationCity", "occupation", "archetype", "specificIdentityContext", "round1ReactionNote", "round2SocialContagionNote", "round3Day30ReactionNote", "favoriteFeature", "mostHatedFeature", "finalLifecycleStatus"];
 
 const FIELD_LABELS = {
   startupName: "Startup name",
   oneLinePitch: "One-line pitch",
-  targetGeography: "Target geography",
-  currentTraction: "Current traction",
-  unfairAdvantages: "Unfair advantages",
-  proposedPricing: "Pricing & packaging",
-  businessModel: "Business model",
+  targetCustomer: "Target customer",
 };
 
 function badRequest(message) { const error = new Error(message); error.status = 400; return error; }
 
 export function validateStartupInput(input = {}) {
-  const required = ["startupName", "oneLinePitch", "targetGeography", "currentTraction", "unfairAdvantages", "proposedPricing", "businessModel"];
-  for (const key of required) if (typeof input[key] !== "string" || input[key].trim().length < 2) throw badRequest(`Complete the ${FIELD_LABELS[key] || key} field before running the simulation.`);
-  if (input.oneLinePitch.trim().length < 20) throw badRequest("Describe the startup and its customer in at least 20 characters.");
-  if (input.businessModel.trim().length < 20) throw badRequest("Describe the business model in at least 20 characters (who pays, for what, and how revenue is captured).");
-  if (input.seedMaterial !== undefined && input.seedMaterial !== null && input.seedMaterial !== "") {
-    if (typeof input.seedMaterial !== "string" || input.seedMaterial.length > 20000) throw badRequest("Describe the seed material in under 20,000 characters.");
+  const normalized = input && typeof input === "object" ? structuredClone(input) : {};
+  const required = ["startupName", "oneLinePitch", "targetCustomer"];
+  for (const key of required) if (typeof normalized[key] !== "string" || normalized[key].trim().length < 2) throw badRequest(`Complete the ${FIELD_LABELS[key] || key} field before running the simulation.`);
+  if (normalized.oneLinePitch.trim().length < 20) throw badRequest("Describe the startup idea and its customer in at least 20 characters.");
+  for (const key of ["websiteUrl", "businessModel", "targetGeography", "currentTraction", "unfairAdvantages", "proposedPricing", "seedMaterial"]) {
+    if (normalized[key] === undefined || normalized[key] === null) normalized[key] = "";
+    if (typeof normalized[key] !== "string") throw badRequest(`The ${key} field must be text.`);
   }
+  if (normalized.seedMaterial.length > 20000) throw badRequest("Describe the seed material in under 20,000 characters.");
   for (const key of ["currentFeatures", "plannedRoadmapFeatures"]) {
-    if (!Array.isArray(input[key]) || !input[key].length) throw badRequest(`Add at least one item to ${key}.`);
-    if (input[key].length > 30) throw badRequest(`${key} is limited to 30 items per run.`);
-    for (const feature of input[key]) if (!feature.name || !feature.description) throw badRequest(`Every ${key} item needs a name and description.`);
+    if (normalized[key] === undefined || normalized[key] === null) normalized[key] = [];
+    if (!Array.isArray(normalized[key])) throw badRequest(`${key} must be a list.`);
+    if (normalized[key].length > 30) throw badRequest(`${key} is limited to 30 items per run.`);
+    for (const feature of normalized[key]) if (!feature || typeof feature.name !== "string" || !feature.name.trim() || typeof feature.description !== "string" || !feature.description.trim()) throw badRequest(`Every ${key} item needs a name and description.`);
   }
-  return structuredClone(input);
+  return normalized;
 }
 
 function validateBatch(payload, batch, expectedCount = 20) {
@@ -65,8 +65,8 @@ function validateBatch(payload, batch, expectedCount = 20) {
     const expected = batch.startId + index;
     if (persona.id !== expected) throw new Error(`Swarm IDs are out of order: expected ${expected}, received ${persona.id}.`);
     for (const key of REQUIRED_FIELDS) if (typeof persona[key] !== "string" || !persona[key].trim()) throw new Error(`Persona ${expected} is missing ${key}.`);
-    if (!ACTIONS.has(persona.round1Day1Action) || !ACTIONS.has(persona.round2Day14ActionRawIdea) || !ACTIONS.has(persona.round3Day30ActionAfterPivot)) throw new Error(`Persona ${expected} has an invalid round action.`);
-    if (!STATUSES.has(persona.finalLifecycleStatus)) throw new Error(`Persona ${expected} has an invalid final status.`);
+    if (!ACTIONS.has(persona.round1Day1Action) || !ACTIONS.has(persona.round2Day14ActionRawIdea) || !ACTIONS.has(persona.round3Day30Action)) throw new Error(`Persona ${expected} has an invalid round action.`);
+    if (!BASELINE_STATUSES.has(persona.finalLifecycleStatus)) throw new Error(`Persona ${expected} has an invalid baseline status.`);
     if (!Array.isArray(persona.episodicMemoryLog) || persona.episodicMemoryLog.length !== 3) throw new Error(`Persona ${expected} needs three episodic memories.`);
   });
   return personas;
@@ -110,13 +110,12 @@ export async function runCrucibleSimulation(rawInput, settings = {}, dependencie
   const criticPromise = requestJson({
     settings, model: config.model, system: CRITIC_SYSTEM_PROMPT, prompt: JSON.stringify(input),
     schema: VENTURE_SCHEMA, schemaName: "venture_critic", maxTokens: 10000, temperature: 0.3,
-  }).then((data) => { progress({ phase: "critic", label: "Feature triage and God's-eye pivot ready", completed: 2, total }); return data; });
+  }).then((data) => { progress({ phase: "critic", label: "Critique and optional future-change suggestion ready", completed: 2, total }); return data; });
   const [ontology, ventureCritic] = await Promise.all([ontologyPromise, criticPromise]);
-  if (!ventureCritic.recommendedGodsEyePivotSummary) throw new Error("The venture critic did not produce a God's-eye pivot.");
   let completed = 2;
   const runBatch = async (batch) => {
-    const system = buildSwarmPrompt(batch, input.targetGeography, ventureCritic.recommendedGodsEyePivotSummary);
-    const prompt = JSON.stringify({ startupInput: input, knowledgeGraph: ontology.knowledgeGraph, communityThreads: threadsForBatch(ontology, batch), godsEyePivot: ventureCritic.recommendedGodsEyePivotSummary });
+    const system = buildSwarmPrompt(batch, input.targetGeography || "not specified");
+    const prompt = JSON.stringify({ startupInput: input, knowledgeGraph: ontology.knowledgeGraph, communityThreads: threadsForBatch(ontology, batch) });
     const options = { settings, model: config.fastModel, prompt, schema: swarmSchema(BATCH_SIZE), schemaName: "swarm_batch", maxTokens: 9000, temperature: 0.7 };
     let valid;
     try { valid = validateBatch(await requestJson({ ...options, system }), batch, BATCH_SIZE); }
@@ -136,7 +135,8 @@ export async function runCrucibleSimulation(rawInput, settings = {}, dependencie
   }
   if (personas.length !== 100 || new Set(personas.map((p) => p.id)).size !== 100) throw new Error("The swarm returned duplicate or incomplete customer IDs.");
   progress({ phase: "aggregate", label: "Computing retention, churn contagion, and paid conversion", completed: total, total });
-  const result = { id: randomUUID(), demo: false, createdAt: new Date().toISOString(), input, ontology, ventureCritic, personas, telemetry: computeTelemetry(personas), pivotHistory: [] };
+  const telemetry = computeTelemetry(personas);
+  const result = { id: randomUUID(), demo: false, baselineMode: "unchanged", createdAt: new Date().toISOString(), input, ontology, ventureCritic, personas, telemetry, baselineTelemetry: telemetry, pivotHistory: [] };
   progress({ phase: "complete", label: "All 100 customers are ready", completed: total, total });
   return result;
 }
@@ -145,29 +145,38 @@ export function applyRound3Deltas(simulation, deltas, pivot) {
   if (!Array.isArray(deltas)) throw new Error("Round-3 deltas must be an array.");
   const seen = new Set();
   for (const delta of deltas) {
-    if (!STATUSES.has(delta.finalLifecycleStatus)) throw new Error(`Invalid final lifecycle status for persona ${delta.id}.`);
-    if (!ACTIONS.has(delta.round3Day30ActionAfterPivot)) throw new Error(`Invalid Round-3 action for persona ${delta.id}.`);
+    if (!SCENARIO_STATUSES.has(delta.finalLifecycleStatus)) throw new Error(`Invalid scenario status for persona ${delta.id}.`);
+    if (!ACTIONS.has(delta.round3Day30Action)) throw new Error(`Invalid Round-3 action for persona ${delta.id}.`);
     if (seen.has(delta.id)) throw new Error(`Duplicate Round-3 delta for persona ${delta.id}.`);
     seen.add(delta.id);
   }
   const cleanPivot = String(pivot || "").trim();
-  if (cleanPivot.length < 8) throw new Error("Describe the pivot in at least 8 characters.");
+  if (cleanPivot.length < 8) throw new Error("Describe the change in at least 8 characters.");
   const byId = new Map(deltas.map((delta) => [delta.id, delta]));
   const result = structuredClone(simulation);
+  result.baselineTelemetry ||= simulation.telemetry;
+  result.comparisonLabel ||= result.baselineMode === "unchanged" ? "Unchanged baseline" : "Saved Day-30 result";
   result.personas = result.personas.map((persona) => {
     const delta = byId.get(persona.id);
     if (!delta) return persona;
-    const note = String(delta.round3PivotReactionNote || "The new intervention did not change my decision.").slice(0, 1200);
+    const note = String(delta.round3Day30ReactionNote || "The change did not alter my decision.").slice(0, 1200);
     return {
       ...persona,
-      round3Day30ActionAfterPivot: delta.round3Day30ActionAfterPivot,
-      round3PivotReactionNote: note,
-      willingnessToPayMonthlyUsdAfterPivot: Math.max(0, Number(delta.willingnessToPayMonthlyUsdAfterPivot) || 0),
+      ...(!persona.baselineDay30 ? { baselineDay30: {
+        action: persona.round3Day30Action ?? persona.round3Day30ActionAfterPivot,
+        note: persona.round3Day30ReactionNote ?? persona.round3PivotReactionNote,
+        willingnessToPay: persona.willingnessToPayMonthlyUsdDay30 ?? persona.willingnessToPayMonthlyUsdAfterPivot,
+        lifecycleStatus: persona.finalLifecycleStatus,
+        memory: persona.episodicMemoryLog[2],
+      } } : {}),
+      round3Day30Action: delta.round3Day30Action,
+      round3Day30ReactionNote: note,
+      willingnessToPayMonthlyUsdDay30: Math.max(0, Number(delta.willingnessToPayMonthlyUsdDay30) || 0),
       finalLifecycleStatus: delta.finalLifecycleStatus,
       episodicMemoryLog: [...persona.episodicMemoryLog.slice(0, 2), String(delta.episodicMemoryEntry || `Day 30: ${note}`).slice(0, 1200)],
     };
   });
-  result.ventureCritic.recommendedGodsEyePivotSummary = cleanPivot;
+  result.activePivot = cleanPivot;
   result.telemetry = computeTelemetry(result.personas);
   result.pivotHistory = [...(result.pivotHistory || []), { pivot: cleanPivot, at: new Date().toISOString() }].slice(-12);
   return result;
@@ -175,7 +184,7 @@ export function applyRound3Deltas(simulation, deltas, pivot) {
 
 export async function reSimulateRound3(simulation, pivot, settings = {}, dependencies = {}) {
   const cleanPivot = String(pivot || "").trim();
-  if (cleanPivot.length < 8) throw new Error("Describe the intervention in at least 8 characters.");
+  if (cleanPivot.length < 8) throw new Error("Describe the change in at least 8 characters.");
   const config = normalizeOpenAIConfig(settings);
   const requestJson = dependencies.requestJson || openAiJson;
   const batches = BATCH_CONFIGS.map((batch) => {
@@ -210,9 +219,9 @@ export function applyDemoPivot(simulation, pivot) {
     const note = churn ? "This change still does not fit my habit or budget." : pays ? "The new model has a clear buyer and a useful outcome." : wins ? "This intervention removes the specific friction that pushed me away." : "My original assessment is unchanged by this intervention.";
     return {
       id: persona.id,
-      round3Day30ActionAfterPivot: churn ? "INFLUENCED_TO_CHURN" : pays ? "CONVERT_TO_PAID" : "ADOPT_PASSIVELY",
-      round3PivotReactionNote: note,
-      willingnessToPayMonthlyUsdAfterPivot: pays ? (clinicPaid && b2b ? 18 : 6) : 0,
+      round3Day30Action: churn ? "INFLUENCED_TO_CHURN" : pays ? "CONVERT_TO_PAID" : "ADOPT_PASSIVELY",
+      round3Day30ReactionNote: note,
+      willingnessToPayMonthlyUsdDay30: pays ? (clinicPaid && b2b ? 18 : 6) : 0,
       finalLifecycleStatus: status,
       episodicMemoryEntry: `Day 30: ${note}`,
     };
@@ -224,7 +233,9 @@ export function demoGuideReply(message, simulation, selectedPersona) {
   const text = String(message || "").toLowerCase();
   if (selectedPersona && new RegExp(`(?:this (?:customer|person|profile)|customer\\s*#?${selectedPersona.id}\\b|#${selectedPersona.id}\\b)`, "i").test(text)) return `${selectedPersona.name} is a ${selectedPersona.archetype.toLowerCase().replaceAll("_", " ")} in ${selectedPersona.locationCity}. Their Day-14 memory says: “${selectedPersona.episodicMemoryLog[1]}” Their final status is ${selectedPersona.finalLifecycleStatus.toLowerCase().replaceAll("_", " ")}. I would test the specific friction in that memory, not treat this one synthetic profile as a real interview.`;
   if (/churn|retention|friction|break|problem/.test(text)) return `The raw idea reaches ${simulation.telemetry.day14Active}% Day-14 retention. ${simulation.telemetry.topChurnTrigger.feature} is the most common friction among inactive customers. The important next step is a small real-world test: remove routine typing for one cohort and compare their repeat behavior with the current flow.`;
-  if (/pay|price|revenue|gmv|conversion/.test(text)) return `The demo moves from ${simulation.telemetry.rawPaying} to ${simulation.telemetry.pivotedPaying} paying champions, with illustrative monthly GMV rising from $${simulation.telemetry.rawMonthlyGmv} to $${simulation.telemetry.pivotedMonthlyGmv} per 100 customers. Treat that as a hypothesis about the stronger payment moment, not a revenue forecast.`;
+  if (/pay|price|revenue|gmv|conversion/.test(text)) return simulation.activePivot
+    ? `In this optional scenario, paying customers move from ${simulation.baselineTelemetry?.day30Paying ?? simulation.telemetry.rawPaying} on the unchanged idea to ${simulation.telemetry.pivotedPaying} after the tested change. The demo's monthly GMV figures are illustrative hypotheses, not revenue forecasts.`
+    : `The unchanged idea has ${simulation.telemetry.day30Paying ?? simulation.telemetry.pivotedPaying} paying customers in this illustrative cohort. The monthly GMV figure is a hypothesis, not a revenue forecast. You can optionally test a future change.`;
   if (/feature|cut|kill|build|roadmap/.test(text)) return `I would keep QR events and the OCR health card as the wedge, kill routine manual health and activity entry, and defer custom hardware and the sitter marketplace. The first build should close one record-to-vet-outcome loop before adding another operational business.`;
-  return `I would start with the Day-14 evidence: only ${simulation.telemetry.day14Active}% remain active on the raw idea, compared with ${simulation.telemetry.day30Active}% after the pivot. Ask me about churn, pricing, a customer number, or which features to cut. These are simulated hypotheses to help design real customer tests.`;
+  return `I would start with the Day-14 result: ${simulation.telemetry.day14Active}% remain active, and ${simulation.telemetry.day30Active}% are active at Day 30 with the idea unchanged. Ask me about churn, pricing, a customer number, or which features cause friction. These are simulated hypotheses to help design real customer tests.`;
 }

@@ -10,7 +10,6 @@ const RAW_PAYING = new Set([1,3,5,8,16,44,67,92]);
 const DAY30_CHURN = new Set([6,14,18,24,27,34,39,43,46,47,56,58,63,65,74,76,81,82,87,89,91,93,94,95,96,97,98,99,100]);
 const ACTIVE_AFTER = Array.from({ length: 100 }, (_, i) => i + 1).filter((id) => !DAY30_CHURN.has(id));
 const PAYING_AFTER = new Set(ACTIVE_AFTER.filter((id) => id % 3 !== 0).slice(0, 31));
-const SAVED_AFTER = new Set(ACTIVE_AFTER.filter((id) => !PAYING_AFTER.has(id)).slice(0, 23));
 
 function archetypeFor(id) {
   if (id <= 15) return "HAIR_ON_FIRE_POWER_USER";
@@ -30,18 +29,17 @@ export function createDemoPersona(id) {
   const activeDay14 = DAY14_ACTIVE.has(id);
   const churnedFinal = DAY30_CHURN.has(id);
   const payingFinal = PAYING_AFTER.has(id);
-  const savedFinal = SAVED_AFTER.has(id);
   const rawPaid = RAW_PAYING.has(id);
   const context = isB2b ? `${occupation} serving ${18 + (id % 6) * 7} pet owners weekly in ${city}; care quality and front-desk time determine whether a new tool survives` : `${occupation.toLowerCase()} in ${city}, caring for ${PETS[(id - 1) % PETS.length]}; weekdays are compressed and clinic spending must solve a visible problem`;
   const favorite = ["QR Social Events", "Digital Health Card", "OCR health-record capture", "Partner Vet E-Consulta"][id % 4];
   const hated = id % 5 === 0 ? "Pet Social Network" : id % 3 === 0 ? "Manual Activity Tracking" : "Manual Health Analytics";
   const day1Action = bouncedDay1 ? "BOUNCE_IMMEDIATELY" : id % 4 === 0 ? "ADOPT_AND_EVANGELIZE" : "ADOPT_PASSIVELY";
   const day2Action = rawPaid ? "CONVERT_TO_PAID" : activeDay14 ? "ADOPT_PASSIVELY" : bouncedDay1 ? "BOUNCE_IMMEDIATELY" : id % 3 === 0 ? "POST_FRICTION_COMPLAINT" : "INFLUENCED_TO_CHURN";
-  const day3Action = payingFinal ? "CONVERT_TO_PAID" : churnedFinal ? "INFLUENCED_TO_CHURN" : savedFinal ? "ADOPT_AND_EVANGELIZE" : "ADOPT_PASSIVELY";
-  const status = churnedFinal ? "CHURNED_PERMANENTLY" : payingFinal ? "PAYING_CHAMPION" : savedFinal ? "SAVED_BY_GODS_EYE_PIVOT" : "FREE_ACTIVE_DATA_CONTRIBUTOR";
+  const day3Action = payingFinal ? "CONVERT_TO_PAID" : churnedFinal ? "INFLUENCED_TO_CHURN" : "ADOPT_PASSIVELY";
+  const status = churnedFinal ? "CHURNED_PERMANENTLY" : payingFinal ? "PAYING_CHAMPION" : "FREE_ACTIVE_DATA_CONTRIBUTOR";
   const day1Note = bouncedDay1 ? "Another general pet feed did not earn a new habit." : "The event check-in and booklet scan delivered value before any setup marathon.";
   const day2Note = activeDay14 ? "I kept the health record but ignored the routine logging prompts." : "The repeated typing and critique thread made this feel like unpaid admin work.";
-  const day3Note = churnedFinal ? "The pivot is cleaner, but my incumbent habit or budget still wins." : payingFinal ? "A real vet handoff gives me a reason to pay." : "I returned for the scan and useful follow-up without the daily diary.";
+  const day3Note = churnedFinal ? "The idea as described still does not fit my habit or budget." : payingFinal ? "The current product's utility gives me a reason to pay." : "I continue using the event and health-record utility without a new product change.";
   return {
     id, name, age: isB2b ? 31 + (id % 22) : 23 + (id % 24), locationCity: city, occupation,
     monthlyDisposableBudgetLocal: isB2b ? `PHP ${12000 + (id % 5) * 5000} operating tools budget` : `PHP ${1500 + (id % 8) * 750} discretionary budget`,
@@ -50,11 +48,11 @@ export function createDemoPersona(id) {
     incumbentToolsUsed: isB2b ? ["Clinic spreadsheet", "Viber", "Paper appointment book"] : ["Facebook Breed Group", "Instagram", "Paper Vet Booklet", id % 2 ? "Viber clinic chat" : "Google Sheets"],
     round1Day1Action: day1Action, round1ReactionNote: day1Note,
     round2Day14ActionRawIdea: day2Action, round2SocialContagionNote: day2Note,
-    round3Day30ActionAfterPivot: day3Action, round3PivotReactionNote: day3Note,
+    round3Day30Action: day3Action, round3Day30ReactionNote: day3Note,
     episodicMemoryLog: [`Day 1: ${day1Note}`, `Day 14: ${day2Note}`, `Day 30: ${day3Note}`],
     favoriteFeature: favorite, mostHatedFeature: hated,
-    willingnessToPayMonthlyUsdBeforePivot: rawPaid ? 5 : activeDay14 ? 2 : 0,
-    willingnessToPayMonthlyUsdAfterPivot: payingFinal ? 6 : 0,
+    willingnessToPayMonthlyUsdDay14: rawPaid ? 5 : activeDay14 ? 2 : 0,
+    willingnessToPayMonthlyUsdDay30: payingFinal ? 6 : 0,
     finalLifecycleStatus: status,
   };
 }
@@ -63,6 +61,7 @@ import { computeTelemetry } from "./telemetry.mjs";
 
 export function createDemoSimulation() {
   const personas = Array.from({ length: 100 }, (_, index) => createDemoPersona(index + 1));
+  const telemetry = computeTelemetry(personas);
   return {
     id: "demo-pawsmatch",
     demo: true,
@@ -71,7 +70,9 @@ export function createDemoSimulation() {
     ontology: structuredClone(DEMO_ONTOLOGY),
     ventureCritic: structuredClone(DEMO_VENTURE),
     personas,
-    telemetry: computeTelemetry(personas),
+    telemetry,
     pivotHistory: [],
+    baselineMode: "unchanged",
+    baselineTelemetry: telemetry,
   };
 }

@@ -2,14 +2,14 @@ export interface StartupValidationInput {
   startupName: string;
   websiteUrl?: string;
   oneLinePitch: string;
-  targetCustomer?: string;
-  businessModel: string;
-  targetGeography: string;
-  currentTraction: string;
-  currentFeatures: Array<{ id: string; name: string; description: string; isManualInputRequired: boolean }>;
-  plannedRoadmapFeatures: Array<{ id: string; name: string; description: string; category: "AI_VISION" | "HARDWARE_WEARABLE" | "TELEHEALTH" | "MARKETPLACE" | "OTHER" }>;
-  unfairAdvantages: string;
-  proposedPricing: string;
+  targetCustomer: string;
+  businessModel?: string;
+  targetGeography?: string;
+  currentTraction?: string;
+  currentFeatures?: Array<{ id: string; name: string; description: string; isManualInputRequired: boolean }>;
+  plannedRoadmapFeatures?: Array<{ id: string; name: string; description: string; category: "AI_VISION" | "HARDWARE_WEARABLE" | "TELEHEALTH" | "MARKETPLACE" | "OTHER" }>;
+  unfairAdvantages?: string;
+  proposedPricing?: string;
   seedMaterial?: string;
 }
 export type PersonaArchetype = "HAIR_ON_FIRE_POWER_USER" | "PRAGMATIC_URBAN_MAINSTREAM" | "SKEPTICAL_INCUMBENT_LOYALIST" | "PRICE_SENSITIVE_FREE_RIDER" | "B2B_SUPPLY_SIDE_PARTNER";
@@ -41,7 +41,7 @@ export interface SimulatedSocialThread {
   postBody: string;
   upvotes: number;
   replyCount: number;
-  sentiment: "VIRAL_PRAISE" | "SKEPTICAL_CRITIQUE" | "CHURN_CASCADE_TRIGGER" | "PIVOT_WINBACK";
+  sentiment: "VIRAL_PRAISE" | "SKEPTICAL_CRITIQUE" | "CHURN_CASCADE_TRIGGER";
   triggeredByFeature: string;
   influencedPersonaIds: number[];
 }
@@ -106,13 +106,18 @@ export interface SimulatedCustomerPersona {
   round1ReactionNote: string;
   round2Day14ActionRawIdea: RoundAction;
   round2SocialContagionNote: string;
-  round3Day30ActionAfterPivot: RoundAction;
-  round3PivotReactionNote: string;
+  round3Day30Action: RoundAction;
+  round3Day30ReactionNote: string;
+  round3Day30ActionAfterPivot?: RoundAction;
+  round3PivotReactionNote?: string;
   episodicMemoryLog: [string, string, string];
   favoriteFeature: string;
   mostHatedFeature: string;
-  willingnessToPayMonthlyUsdBeforePivot: number;
-  willingnessToPayMonthlyUsdAfterPivot: number;
+  willingnessToPayMonthlyUsdDay14: number;
+  willingnessToPayMonthlyUsdDay30: number;
+  willingnessToPayMonthlyUsdBeforePivot?: number;
+  willingnessToPayMonthlyUsdAfterPivot?: number;
+  baselineDay30?: { action: RoundAction; note: string; willingnessToPay: number; lifecycleStatus: LifecycleStatus; memory: string };
   finalLifecycleStatus: LifecycleStatus;
 }
 export interface SwarmTelemetry {
@@ -121,6 +126,11 @@ export interface SwarmTelemetry {
   day14Active: number;
   day30Active: number;
   retentionLift: number;
+  day14Paying: number;
+  day30Paying: number;
+  day14MonthlyGmv: number;
+  day30MonthlyGmv: number;
+  /** Legacy metric aliases retained for runs saved by older versions. */
   rawPaying: number;
   pivotedPaying: number;
   rawMonthlyGmv: number;
@@ -141,6 +151,10 @@ export interface CrucibleSimulationResult {
   ventureCritic: VentureCriticOutput;
   personas: SimulatedCustomerPersona[];
   telemetry: SwarmTelemetry;
+  baselineMode?: "unchanged";
+  baselineTelemetry?: SwarmTelemetry;
+  comparisonLabel?: string;
+  activePivot?: string;
   pivotHistory: Array<{ pivot: string; at: string }>;
 }
 export interface GuideCharacter {

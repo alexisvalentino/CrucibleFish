@@ -22,12 +22,14 @@ test("demo contains 100 unique customers and stable temporal telemetry", () => {
   assert.equal(demo.ontology.socialThreads.length, 6);
 });
 
-test("intake requires an explicit business model and accepts untested pricing", () => {
+test("intake requires only the core idea fields and accepts untested pricing", () => {
   const fixture = createDemoSimulation();
   assert.ok(fixture.input.businessModel, "the preset must demonstrate a business model");
   assert.ok(fixture.input.targetCustomer, "the preset must demonstrate the target customer");
-  assert.throws(() => validateStartupInput({ ...fixture.input, businessModel: "" }), /Business model/i);
-  assert.throws(() => validateStartupInput({ ...fixture.input, businessModel: "free" }), /at least 20 characters/i);
+  const minimal = validateStartupInput({ startupName: "Example", oneLinePitch: "A sufficiently clear idea pitch.", targetCustomer: "Independent pet owners" });
+  assert.equal(minimal.businessModel, "");
+  assert.deepEqual(minimal.currentFeatures, []);
+  assert.deepEqual(minimal.plannedRoadmapFeatures, []);
   const accepted = validateStartupInput({
     ...fixture.input,
     businessModel: "B2C freemium: owners use it free; clinics pay a monthly licence for structured intake and referrals.",
@@ -109,18 +111,17 @@ test("the guide resolves a mentioned persona and sees seed evidence", () => {
   assert.equal(findMentionedPersona(fixture, "Why do customers churn?"), null);
   assert.match(buildGuidePrompt({}, fixture, persona), new RegExp(persona.name));
   assert.match(buildGuidePrompt({}, { ...fixture, input: { ...fixture.input, seedMaterial: "OWNER_INTERVIEW_EXCERPT" } }), /OWNER_INTERVIEW_EXCERPT/);
-  assert.match(buildGuidePrompt({}, fixture, persona, "WEEK_EVIDENCE_MARKER"), /WEEK_EVIDENCE_MARKER/);
-  assert.match(buildGuidePrompt({}, fixture, persona), /has not entered real weekly observations/);
+  assert.doesNotMatch(buildGuidePrompt({}, fixture, persona), /weekly observations/);
 });
 
-test("Round-3 interventions preserve identity and the first two rounds", () => {
+test("optional Round-3 changes preserve identity and the first two rounds", () => {
   const demo = createDemoSimulation();
   const before = structuredClone(demo.personas[41]);
   const updated = applyRound3Deltas(demo, [{
     id: 42,
-    round3Day30ActionAfterPivot: "CONVERT_TO_PAID",
-    round3PivotReactionNote: "The clinic-paid plan fits my budget.",
-    willingnessToPayMonthlyUsdAfterPivot: 0,
+    round3Day30Action: "CONVERT_TO_PAID",
+    round3Day30ReactionNote: "The clinic-paid plan fits my budget.",
+    willingnessToPayMonthlyUsdDay30: 0,
     finalLifecycleStatus: "SAVED_BY_GODS_EYE_PIVOT",
     episodicMemoryEntry: "Day 30: I returned when my clinic paid.",
   }], "Make owner accounts free and charge clinics.");
@@ -130,7 +131,7 @@ test("Round-3 interventions preserve identity and the first two rounds", () => {
   }
   assert.deepEqual(after.episodicMemoryLog.slice(0, 2), before.episodicMemoryLog.slice(0, 2));
   assert.equal(after.episodicMemoryLog[2], "Day 30: I returned when my clinic paid.");
-  assert.equal(updated.ventureCritic.recommendedGodsEyePivotSummary, "Make owner accounts free and charge clinics.");
+  assert.equal(updated.activePivot, "Make owner accounts free and charge clinics.");
   assert.equal(updated.pivotHistory.at(-1).pivot, "Make owner accounts free and charge clinics.");
   assert.deepEqual(updated.telemetry, computeTelemetry(updated.personas));
   assert.throws(() => applyRound3Deltas(demo, [{ id: 42, finalLifecycleStatus: "UNKNOWN" }], "bad"), /status/i);

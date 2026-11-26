@@ -18,6 +18,7 @@ a{color:#174ca5;text-underline-offset:3px;overflow-wrap:anywhere}
 .report-brand span:last-child{font-weight:600;color:var(--muted);text-align:right;letter-spacing:0;text-transform:none}
 .report-intro{padding:26px 0 18px}
 .report-date{font-size:11px;color:var(--muted);margin:0 0 5px}
+.scenario-label{display:inline-flex;margin:0 0 9px;padding:4px 9px;border:1px solid var(--line-strong);border-radius:4px;background:var(--blue-soft);color:var(--blue-deep);font-size:11px;font-weight:600;line-height:1.4}
 h1,h2,h3,p{overflow-wrap:anywhere}
 .report-intro h1{font-size:32px;line-height:1.18;letter-spacing:-.025em;margin:0 0 9px;color:var(--ink)}
 .report-pitch{font-size:16px;line-height:1.55;margin:0;max-width:68ch;color:#304964}
@@ -55,6 +56,7 @@ h1,h2,h3,p{overflow-wrap:anywhere}
 .brief-list>div{display:grid;grid-template-columns:155px 1fr;gap:16px;padding:9px 0;border-bottom:1px solid var(--line)}
 .brief-list dt{font-size:11px;color:var(--muted);font-weight:600}
 .brief-list dd{margin:0;font-size:12px;line-height:1.55;overflow-wrap:anywhere}
+.brief-feature-list{margin:0;padding-left:18px}.brief-feature-list li+li{margin-top:6px}.brief-feature-list small{display:block;color:var(--muted);font-size:10px}.brief-context-note{margin:5px 0 0;color:var(--muted);font-size:10px;line-height:1.5}
 .page-start{break-before:page;page-break-before:always;margin-top:0;padding-top:10px}
 .customer-sample{padding:16px 0;border-top:1px solid var(--line);break-inside:avoid;page-break-inside:avoid}
 .customer-sample header{display:flex;align-items:flex-start;justify-content:space-between;gap:16px}
@@ -66,6 +68,7 @@ h1,h2,h3,p{overflow-wrap:anywhere}
 .sample-timeline>div{display:grid;grid-template-columns:180px 1fr;gap:12px;padding:7px 0;border-bottom:1px solid #edf1f6}
 .sample-timeline dt{font-size:10px;font-weight:700;color:var(--blue-deep)}
 .sample-timeline dd{font-size:11px;line-height:1.5;margin:0;color:#405972}
+.sample-before-after p{margin:0}.sample-before-after p+p{margin-top:6px}.sample-before-after strong{color:var(--ink)}
 .social-heading{margin-top:28px!important}
 .social-list article{padding:13px 0;border-top:1px solid var(--line);break-inside:avoid;page-break-inside:avoid}
 .social-meta{font-size:10px;color:var(--muted);margin-bottom:3px}

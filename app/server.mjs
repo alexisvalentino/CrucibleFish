@@ -171,9 +171,9 @@ export function createAppServer(options = {}) {
         const id = decodeURIComponent(pivotMatch[1]);
         const body = await readJson(req);
         const pivot = clean(body.pivot, 3000);
-        if (pivot.length < 8) return send(res, 400, { error: "Describe the intervention in at least 8 characters." });
+        if (pivot.length < 8) return send(res, 400, { error: "Describe the change in at least 8 characters." });
         const current = loadResult(id);
-        if (!current) return send(res, 404, { error: "Load a completed simulation before testing a pivot." });
+        if (!current) return send(res, 404, { error: "Load a completed simulation before testing a change." });
         const settings = settingsFrom(body);
         const hasKey = Boolean(normalizeOpenAIConfig(settings).apiKey);
         if (!current.demo && !hasKey) return send(res, 503, { error: "Add an OpenAI API key to re-simulate this live run." });
@@ -195,7 +195,6 @@ export function createAppServer(options = {}) {
         const character = characterFrom(body);
         const selectedPersona = result?.personas?.find((persona) => persona.id === Number(body.selectedPersonaId)) || findMentionedPersona(result, messages.at(-1)?.content);
         const settings = settingsFrom(body);
-        const realEvidence = clean(body.evidence, 4000);
         const config = normalizeOpenAIConfig(settings);
         if (!config.apiKey && !result?.demo) return send(res, 503, { error: "Add an OpenAI API key in Settings to chat with your guide." });
         res.writeHead(200, { ...SECURITY, "content-type": "text/event-stream; charset=utf-8", "cache-control": "no-store", connection: "keep-alive" });
@@ -209,7 +208,7 @@ export function createAppServer(options = {}) {
             if (!closed) event(res, { done: true, demo: true });
           } else {
             const completion = await chatCompletion({
-              settings, system: buildGuidePrompt(character, result, selectedPersona, realEvidence), messages,
+              settings, system: buildGuidePrompt(character, result, selectedPersona), messages,
               onText: (text) => { if (!closed) event(res, { t: text }); },
             });
             if (!closed) event(res, { done: true, truncated: completion.truncated, usage: completion.usage });

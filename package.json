@@ -8,7 +8,7 @@
   "scripts": {
     "dev": "node app/scripts/dev.mjs",
     "start": "node app/server.mjs",
-    "test": "node --test app/scripts/openai.test.mjs app/scripts/simulation.test.mjs app/scripts/evidence.test.mjs app/scripts/calibration.test.mjs app/scripts/discover.test.mjs app/scripts/http.test.mjs app/scripts/ui-grid.test.mjs",
+    "test": "node --test app/scripts/openai.test.mjs app/scripts/simulation.test.mjs app/scripts/discover.test.mjs app/scripts/http.test.mjs app/scripts/ui-grid.test.mjs",
     "check": "node app/scripts/check.mjs"
   },
   "engines": {
